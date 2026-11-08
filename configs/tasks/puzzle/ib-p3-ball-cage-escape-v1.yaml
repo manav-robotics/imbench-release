@@ -1,0 +1,146 @@
+task_id: ib-p3-ball-cage-escape-v1
+description: >-
+  Puzzle: a ball is trapped inside a thin cuboid with a hole in its floor.
+  Tilt or lift the cuboid so the hole clears the table and the ball drops
+  out.
+max_episode_steps: 1500
+reward_type: sparse
+action_mode: cartesian_delta
+control_freq: 100
+
+scene:
+  table:
+    full_size: [1.0, 1.0, 0.05]
+    height: 0.8
+    offset: null
+  robot_offset: null
+
+placement:
+  center: null
+  x_range: 0.04
+  y_range: 0.04
+  # Cage is wide; we override placement manually in reset() anyway, so the
+  # sampler doesn't need to enforce non-overlap between cage and ball.
+  ensure_valid_placement: false
+
+randomization:
+  object_color:
+    enabled: false
+  lighting:
+    position: true
+    color: false
+
+task:
+  # Thin cuboid "cage". Inner XY is roomy, inner Z is short so the ball
+  # barely has headroom — keeps the puzzle focused on tilting the floor.
+  cage_inner_size: [0.22, 0.22, 0.04]
+  wall_thickness: 0.004
+  # Smaller ball — diameter ≈ 0.14 × inner width, so it rolls freely on
+  # the floor and has a clear "needle" target to find.
+  ball_radius: 0.015
+  ball_density: 400.0
+  cage_density: 500.0
+  # Semi-transparent cage walls so the ball is visible from outside.
+  cage_rgba: [0.55, 0.65, 0.80, 0.25]
+  # Hole half-width = ball_radius * hole_scale. Wider than 1.0× so the
+  # ball can pass through with a bit of clearance.
+  hole_scale: 2.0
+  # Keep the hole away from inner corners by this absolute margin (m).
+  corner_margin: 0.020
+  # Narrow pedestal (stool) that elevates the cage off the tabletop so the
+  # gripper can reach under/around it from the side. [half is size/2]
+  stool_size: [0.1, 0.1, 0.10]
+  stool_rgba: [0.35, 0.35, 0.35, 1.0]
+
+task_conditions:
+  success:
+    score_threshold: 1.0
+  failure:
+    floor_z_threshold: 0.05
+
+recording:
+  save_freq:
+    proprio: 100
+    force_torque: 50
+    object_state: 50
+    cameras: 25
+    tactile: 50
+  save:
+    action: true
+    reward: true
+    task_score: true
+    joint_positions: true
+    ee_poses: true
+
+controller:
+  type: OSC_POSE
+  robot: Panda
+  kp: 200
+  damping_ratio: 1
+  impedance_mode: fixed
+  uncouple_pos_ori: true
+  input_type: delta
+  input_ref_frame: base
+
+obs:
+  proprio:
+    enabled: true
+    keys:
+    - robot0_eef_pos
+    - robot0_eef_quat
+    - robot0_gripper_qpos
+    - robot0_joint_pos
+    - robot0_joint_vel
+    save: true
+  object_state:
+    enabled: true
+    save: true
+  cameras:
+    gripper_cam:
+      enabled: true
+      robosuite_name: robot0_eye_in_hand
+      width: 640
+      height: 480
+      depth: false
+      save: true
+    exo_bird_cam:
+      enabled: true
+      robosuite_name: birdview
+      width: 640
+      height: 480
+      depth: false
+      save: true
+    exo_right_cam:
+      enabled: true
+      robosuite_name: agentview
+      pos: [0.0, -0.9, 1.2]
+      quat: [0.8254, 0.5646, 0.0, 0.0]
+      fovy: 60
+      width: 640
+      height: 480
+      depth: false
+      save: true
+    exo_left_cam:
+      enabled: true
+      robosuite_name: sideview
+      pos: [0.0, 0.9, 1.2]
+      quat: [0.0, 0.0, 0.5646, 0.8254]
+      fovy: 60
+      width: 640
+      height: 480
+      depth: false
+      save: true
+  force_torque:
+    enabled: true
+    keys:
+    - robot0_ft_sensor
+    save: true
+  tactile:
+    enabled: true
+    fingers:
+    - right
+    - left
+    rows: 8
+    cols: 8
+    spacing: 0.001
+    save: true

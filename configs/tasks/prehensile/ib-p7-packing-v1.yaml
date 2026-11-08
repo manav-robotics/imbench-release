@@ -1,0 +1,141 @@
+task_id: ib-p7-packing-v1
+description: >
+  Packing puzzle (single-arm suction): a flat shape sized to fit inside
+  the bin is decomposed into 6 or 8 axis-aligned sub-boxes by a
+  Bin-Packing-Problem generator (Algorithm 2: recursive guillotine
+  splits weighted by volume / edge length / distance to the centre).
+  Adjacent sub-boxes are fused into 3 or 4 L-shaped pieces that tile the
+  bin. A single Panda arm with a suction gripper picks and places each
+  L-piece flat on the bin floor at its generated target centroid and
+  symmetry-equivalent orientation, in a single layer.
+max_episode_steps: 15000
+reward_type: sparse
+action_mode: cartesian_delta
+control_freq: 100
+
+# ── Task parameters ────────────────────────────────────────────────
+task:
+  # Shift the bin (and the scattered pieces around it) toward the arm
+  # so everything sits within comfortable reach. The arm is on the -Y
+  # edge after the 90° rotation, so a negative Y pulls the scene closer.
+  fixture_pos: [0.0, -0.43]
+  # Every piece must match its own generated slot, using its geometric
+  # centroid and the nearest physically equivalent orientation.
+  centroid_position_threshold: 0.005  # metres, full 3D distance
+  orientation_threshold_deg: 5.0
+
+# ── Robot / gripper ─────────────────────────────────────────────────
+# Declared here (not just in code) so BaseTask._fix_suction_eye_in_hand
+# can detect the suction gripper and patch the eye_in_hand camera pose
+# past the pump body.
+grippers:
+- PandaSuctionGripper
+
+# ── Scene ──────────────────────────────────────────────────────────
+scene:
+  table:
+    height: 0.9
+    # Widened so the 2× scaled L-pieces sit fully on the table when
+    # scattered alongside the bin: X half ≥ 0.6 covers worst-case piece
+    # bbox reach, Y half ≥ 0.5 covers the staggered-row layout south of
+    # the bin (pieces can extend ~0.45 m below the bin centre).
+    full_size: [1.4, 1.0, 0.05]
+    offset: [0, -0.2, 0.9]
+  robot_offset: null       # null = auto
+
+# ── Task conditions ────────────────────────────────────────────────
+task_conditions:
+  success:
+    score_threshold: 1.0   # every piece at its target pose, flat, released and settled
+  failure:
+    floor_z_threshold: 0.05  # block fell off the table
+
+# ── Domain randomization ──────────────────────────────────────────
+randomization:
+  block_placement:
+    enabled: false
+    x_range: 0.10
+    y_range: 0.10
+  block_yaw:
+    enabled: false
+  # Inclusive [lo, hi] range for the number of L-pieces sampled per
+  # episode. The BPP split is also re-run per episode so the puzzle's
+  # geometry varies even when the count is the same.
+  piece_count_range: [3, 4]
+  lighting:
+    position: true
+    color: false
+
+recording:
+  save_freq:
+    proprio: 100
+    force_torque: 50
+    object_state: 50
+    cameras: 25
+    tactile: 50
+  save:
+    action: true
+    reward: true
+    task_score: true
+    joint_positions: true
+    ee_poses: true
+
+controller:
+- type: OSC_POSE
+  robot: Panda
+  kp: [600, 600, 600, 150, 150, 150]
+  damping_ratio: 1.2
+  impedance_mode: fixed
+  uncouple_pos_ori: true
+  input_type: delta
+  input_ref_frame: base
+
+obs:
+  proprio:
+    enabled: true
+    keys:
+    - robot0_eef_pos
+    - robot0_eef_quat
+    - robot0_gripper_qpos
+    - robot0_joint_pos
+    - robot0_joint_vel
+    save: true
+  object_state:
+    enabled: true
+    save: true
+  cameras:
+    gripper0_cam:
+      enabled: true
+      robosuite_name: robot0_eye_in_hand
+      width: 640
+      height: 480
+      depth: false
+      save: true
+    exo_front_cam:
+      enabled: true
+      robosuite_name: frontview
+      width: 640
+      height: 480
+      depth: false
+      save: true
+    exo_bird_cam:
+      enabled: true
+      robosuite_name: birdview
+      width: 640
+      height: 480
+      depth: false
+      save: true
+  force_torque:
+    enabled: true
+    keys:
+    - robot0_ft_sensor
+    save: true
+  tactile:
+    enabled: false
+    fingers:
+    - right
+    - left
+    rows: 8
+    cols: 8
+    spacing: 0.001
+    save: false

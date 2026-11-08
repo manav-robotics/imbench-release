@@ -1,0 +1,187 @@
+task_id: ib-m-dining-table-v1
+description: >
+  Dining-table assembly: common YCB dining objects are scattered across the
+  table. Arm 0 (scripted) and arm 1 (teleoperated) must each pick up their
+  assigned objects and place them on the matching coloured circular goal zone.
+  Object spawn positions and goal zone positions are randomised every episode,
+  requiring the policy to generalise to different layouts.
+  Arm 0 objects (red/blue/green markers): sugar_box, mustard_bottle, cracker_box
+  — all tall enough for the scripted arm's workspace reach (~0.089 m above table).
+  Arm 1 objects (yellow/cyan/magenta markers): tomato_soup_can, apple, orange
+  — shorter objects suited for teleoperation.
+
+max_episode_steps: 12000
+reward_type: sparse
+action_mode: cartesian_delta
+control_freq: 100
+
+# ── Object assignment ──────────────────────────────────────────────
+# arm0 → scripted arm (red, blue, green goal markers).
+# arm1 → teleoperated arm (yellow, cyan, magenta goal markers).
+# Each list can hold 1–3 YCB object names.  Colour assignment is positional:
+#   arm0[0]=red, arm0[1]=blue, arm0[2]=green
+#   arm1[0]=yellow, arm1[1]=cyan, arm1[2]=magenta
+arm0_objects:
+  - sugar_box       # red     marker — 47×94×177 mm  centroid@89 mm
+  - mustard_bottle  # blue    marker — 58×96×192 mm  centroid@96 mm
+  - cracker_box     # green   marker — 75×166×216 mm centroid@108 mm
+
+arm1_objects:
+  - tomato_soup_can  # yellow  marker — 68×68×103 mm  centroid@52 mm
+  - apple            # cyan    marker — 75×75×72 mm   centroid@36 mm
+  - orange           # magenta marker — 71×73×71 mm   centroid@34 mm
+
+# ── Placement detection ────────────────────────────────────────────
+placement_detection:
+  xy_tolerance: 0.08    # m — object centroid must be ≤ this from goal centre
+  z_tolerance:  0.06    # m — max |centroid z − resting centroid z|
+  max_tilt_deg: 20.0    # max angle between the object's up axis and world up
+  tilt_exempt: [apple, orange]   # round objects: any orientation counts as upright
+  rest_steps: 10        # consecutive steps an object must meet every condition
+  rest_lin_vel: 0.05    # m/s — "at rest" speed bound (above resting contact chatter)
+  rest_ang_vel: 0.5     # rad/s — "at rest" angular speed bound
+
+# ── Scripted arm parameters ────────────────────────────────────────
+# Per-object grasp affordances are resolved in priority order:
+#   1. scripted_arm.affordances.<obj_name> (YAML override, partial keys OK)
+#   2. Curated _GRASP_AFFORDANCES table in dining_table_v1.py
+#   3. Auto-derived from YCB mesh geometry (bottom_offset / top_offset)
+# Add any YCB object name under 'affordances' to tune or override its grasp.
+scripted_arm:
+  hover_height:    0.40   # m — fallback transit height
+  grasp_clearance: 0.090  # m — fallback grasp height
+  place_height:    0.20   # m — fallback place height
+  hold_steps_grasp:   40  # sim steps to hold gripper closed (~0.4 s at 100 Hz)
+  hold_steps_release:  8  # sim steps to hold gripper open at release
+  # Per-object affordance overrides.  Only keys listed here are overridden;
+  # omitted keys fall back to the curated table or mesh-derived values.
+  # affordances:
+  #   sugar_box:
+  #     grasp_clearance: 0.089
+  #     transit_height:  0.40
+  #   my_custom_ycb_object:
+  #     grasp_clearance: 0.060
+  #     approach_height: 0.20
+  #     transit_height:  0.32
+  #     place_height:    0.15
+  #     grasp_x_width_mm: 55
+
+# ── Scene ──────────────────────────────────────────────────────────
+scene:
+  table:
+    height: 0.9
+    full_size: [1.2, 0.80, 0.05]
+    offset: [0, 0, 0.9]
+  robot_offset: null        # null = auto parallel layout
+
+# ── Task conditions ────────────────────────────────────────────────
+task_conditions:
+  success:
+    score_threshold: 1.0    # all objects placed
+  failure:
+    floor_z_threshold: 0.05
+
+# ── Domain randomisation ──────────────────────────────────────────
+randomization:
+  # Lighting
+  lighting:
+    position: true    # randomise light position each episode
+    color: false      # randomise light diffuse colour
+
+  # Object spawn positions.  Bounds are table-centred XY in metres.
+  # arm0 spawns in the robot-side half; arm1 in the far half.
+  # min_object_separation must be ≥ sum of the two largest object half-
+  # footprints (cracker_box 83 mm + mustard_bottle 48 mm = 131 mm) so no
+  # spawn lands directly under another object's goal during arm descent.
+  # scatter_y upper bound is -0.12 to keep objects clear of the Panda's
+  # forearm in its default joint pose (centre ≈ y = -0.15 m table-relative).
+  # scatter_x is ±0.18 m to stay within the arm's reachable workspace at the
+  # required grasp depth (y ≈ -0.15 to -0.27, which already limits reach).
+  object_pose:
+    arm0:
+      scatter_x: [-0.18, 0.18]
+      scatter_y: [-0.27, -0.12]
+    arm1:
+      scatter_x: [-0.18, 0.18]
+      scatter_y: [0.12, 0.27]
+    min_object_separation: 0.14   # m
+
+  # Goal zone positions.  Keep each arm's goals on its own table half.
+  goal_zones:
+    arm0:
+      bounds_x: [-0.22, 0.22]
+      bounds_y: [-0.27, -0.05]
+    arm1:
+      bounds_x: [-0.22, 0.22]
+      bounds_y: [0.05, 0.27]
+    min_goal_separation: 0.17     # m — minimum marker↔marker distance (marker diameter 0.16 m)
+
+# ── Recording ─────────────────────────────────────────────────────
+recording:
+  save_freq:
+    proprio: 100
+    force_torque: 50
+    object_state: 50
+    cameras: 25
+    tactile: 50
+  save:
+    action: true
+    reward: true
+    task_score: true
+    joint_positions: true
+    ee_poses: true
+
+# ── Grippers (both parallel-jaw finger) ──────────────────────────
+grippers:
+  - PandaGripper
+  - PandaGripper
+
+# ── Controllers (OSC_POSE for both arms) ─────────────────────────
+controller:
+  - type: OSC_POSE
+    robot: Panda
+    kp: 150
+    damping_ratio: 1.0
+    impedance_mode: fixed
+  - type: OSC_POSE
+    robot: Panda
+    kp: 150
+    damping_ratio: 1.0
+    impedance_mode: fixed
+
+# ── Observations ──────────────────────────────────────────────────
+obs:
+  proprio:
+    enabled: true
+    keys:
+      - robot0_joint_pos
+      - robot0_joint_vel
+      - robot0_eef_pos
+      - robot0_eef_quat
+      - robot0_gripper_qpos
+      - robot1_joint_pos
+      - robot1_joint_vel
+      - robot1_eef_pos
+      - robot1_eef_quat
+      - robot1_gripper_qpos
+  object_state:
+    enabled: true
+  cameras:
+    agentview:
+      enabled: true
+      robosuite_name: agentview
+      width: 128
+      height: 128
+      depth: false
+    shouldercamera0:
+      enabled: true
+      robosuite_name: shouldercamera0
+      width: 128
+      height: 128
+      depth: false
+    shouldercamera1:
+      enabled: true
+      robosuite_name: shouldercamera1
+      width: 128
+      height: 128
+      depth: false

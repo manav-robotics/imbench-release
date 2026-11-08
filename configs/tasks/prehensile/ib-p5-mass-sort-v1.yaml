@@ -1,0 +1,138 @@
+task_id: ib-p5-mass-sort-v1
+description: >-
+  Single arm: infer the mass of visually identical cubes by lifting them,
+  then sort them into the correct zones in ascending order.
+max_episode_steps: 5000
+reward_type: sparse
+action_mode: cartesian_delta
+control_freq: 100
+
+# Render the F/T time-series in the obs dashboard — lets the operator
+# eyeball how much weight the gripper is holding via Fz / wrench magnitude.
+visualize_FT: true
+
+# ── Scene geometry ─────────────────────────────────────────────────
+scene:
+  table:
+    full_size: [0.5, 0.5, 0.05]
+    height: 0.8
+    offset: null
+  robot_offset: null
+
+# ── Object placement bounds (meters from table center) ─────────────
+placement:
+  center: null
+  x_range: 0.12
+  y_range: 0.12
+
+# ── Domain randomization (re-sampled every reset) ─────────────────
+randomization:
+  # Cube colors must stay fixed: the operator identifies cubes by color
+  # in the episode-start print, and the Held-weight dashboard relies on
+  # that mapping being stable.
+  object_color:
+    enabled: false
+  lighting:
+    position: true
+    color: false
+
+# ── Task-specific parameters ───────────────────────────────────────
+task:
+  num_cubes: 3
+  cube_size: 0.025
+  masses: [0.05, 0.10, 0.20]
+  zone_width: 0.08
+  zone_spacing: 0.12
+
+task_conditions:
+  success:
+    score_threshold: 1.0
+  failure:
+    floor_z_threshold: 0.05
+
+recording:
+  save_freq:
+    proprio: 100
+    force_torque: 50
+    object_state: 50
+    cameras: 25
+    tactile: 50
+  save:
+    action: true
+    reward: true
+    task_score: true
+    joint_positions: true
+    ee_poses: true
+
+controller:
+  type: OSC_POSE
+  robot: Panda
+  kp: 200
+  damping_ratio: 1
+  impedance_mode: fixed
+  uncouple_pos_ori: true
+  input_type: delta
+  input_ref_frame: base
+
+obs:
+  proprio:
+    enabled: true
+    keys:
+    - robot0_eef_pos
+    - robot0_eef_quat
+    - robot0_gripper_qpos
+    - robot0_joint_pos
+    - robot0_joint_vel
+    save: true
+  object_state:
+    enabled: true
+    save: true
+  cameras:
+    gripper_cam:
+      enabled: true
+      robosuite_name: robot0_eye_in_hand
+      width: 640
+      height: 480
+      depth: false
+      save: true
+    ego_cam:
+      enabled: true
+      robosuite_name: robot0_robotview
+      width: 640
+      height: 480
+      depth: false
+      save: true
+    exo_right_cam:
+      enabled: true
+      robosuite_name: agentview
+      pos: [0.0, -0.9, 1.2]
+      quat: [0.8254, 0.5646, 0.0, 0.0]
+      fovy: 60
+      width: 640
+      height: 480
+      depth: false
+      save: true
+    exo_left_cam:
+      enabled: true
+      robosuite_name: sideview
+      pos: [0.0, 0.9, 1.2]
+      quat: [0.0, 0.0, 0.5646, 0.8254]
+      fovy: 60
+      width: 640
+      height: 480
+      depth: false
+      save: true
+  force_torque:
+    enabled: true
+    keys:
+    - robot0_ft_sensor
+    save: true
+  tactile:
+    enabled: true
+    fingers:
+    - right
+    - left
+    rows: 8
+    cols: 8
+    spacing: 0.001
+    save: true

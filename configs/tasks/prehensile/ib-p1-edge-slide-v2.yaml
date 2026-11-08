@@ -1,0 +1,140 @@
+task_id: ib-p1-edge-slide-v2
+description: >-
+  Single arm: slide a flat cylinder to the table edge to create a graspable
+  overhang, then grasp and lift it.
+max_episode_steps: 5000
+reward_type: sparse
+action_mode: cartesian_delta
+control_freq: 100
+
+# ── Physics ────────────────────────────────────────────────────────
+physics:
+  # Multi-point convex contacts: a flat cylinder or mesh face otherwise
+  # rests on one contact and rocks, creeps or sinks into its support.
+  multiccd: true
+
+# ── Scene geometry ─────────────────────────────────────────────────
+scene:
+  table:
+    full_size: [0.5, 0.5, 0.05]   # [width, depth, thickness] in meters
+    height: 0.8                     # surface z in world frame
+    offset: null                   # [x, y, z] table center; null = [0, 0, height]
+  robot_offset: null               # [[x, y, z]] per robot; null = auto from table size
+  object:
+    radius: 0.075                   # cylinder radius in meters (full diameter: 15 cm)
+    half_height: 0.0015             # half-height (thickness) of the cylinder
+    mass: 0.1                       # kg
+    friction: 0.4                   # sliding friction coefficient
+    color: [0.0, 0.3, 0.7, 1.0]   # base RGBA (blue)
+  table_color: [1.0, 1.0, 1.0, 1.0] # base table-top RGBA (white)
+  lift_height: 0.15                 # success = object z > table + this
+  robot_ori: null                    # base orientation [r, p, y] radians (null = robosuite default)
+
+# ── Object placement bounds (meters from table center) ─────────────
+placement:
+  center: null                         # [x, y] nominal center; null = table center [0, 0]
+  x_range: 0.12
+  y_range: 0.12
+
+# ── Domain randomization (re-sampled every reset) ─────────────────
+randomization:
+  object_radius:                    # cylinder radius range
+    range: [0.05, 0.10]
+  object_friction:                  # sliding friction coefficient
+    range: [0.2, 0.6]
+  object_color:                     # randomize object RGBA each reset
+    enabled: true
+  table_color:                      # randomize table-top RGBA each reset
+    enabled: false
+  lighting:
+    position: true                  # randomize light position each reset
+    color: false                    # randomize light diffuse/ambient color
+
+
+
+recording:
+  save_freq:
+    proprio: 100
+    force_torque: 50
+    object_state: 50
+    cameras: 25
+    tactile: 50
+  save:
+    action: true
+    reward: true
+    task_score: true
+    joint_positions: true
+    ee_poses: true
+
+controller:
+  type: OSC_POSE
+  robot: Panda
+  kp: 200
+  damping_ratio: 1
+  impedance_mode: fixed
+  uncouple_pos_ori: true
+  input_type: delta
+  input_ref_frame: base
+
+obs:
+  proprio:
+    enabled: true
+    keys:
+    - robot0_eef_pos
+    - robot0_eef_quat
+    - robot0_gripper_qpos
+    - robot0_joint_pos
+    - robot0_joint_vel
+    save: true
+  object_state:
+    enabled: true
+    save: true
+  cameras:
+    gripper_cam:
+      enabled: true
+      robosuite_name: robot0_eye_in_hand
+      width: 640
+      height: 480
+      depth: false
+      save: true
+    ego_cam:
+      enabled: true
+      robosuite_name: robot0_robotview
+      width: 640
+      height: 480
+      depth: false
+      save: true
+    exo_right_cam:
+      enabled: true
+      robosuite_name: agentview
+      pos: [0.0, -0.9, 1.2]
+      quat: [0.8254, 0.5646, 0.0, 0.0]
+      fovy: 60
+      width: 640
+      height: 480
+      depth: false
+      save: true
+    exo_left_cam:
+      enabled: true
+      robosuite_name: sideview
+      pos: [0.0, 0.9, 1.2]
+      quat: [0.0, 0.0, 0.5646, 0.8254]
+      fovy: 60
+      width: 640
+      height: 480
+      depth: false
+      save: true
+  force_torque:
+    enabled: true
+    keys:
+    - robot0_ft_sensor
+    save: true
+  tactile:
+    enabled: true
+    fingers:
+    - right
+    - left
+    rows: 8
+    cols: 8
+    spacing: 0.001
+    save: true

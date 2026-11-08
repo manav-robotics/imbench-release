@@ -1,0 +1,193 @@
+task_id: ib-p6-pick-place-ycb-v1
+description: >-
+  Single arm: a random medium YCB object and a 0.15 m x 0.15 m green
+  goal patch spawn at random positions within the robot's reachable
+  workspace (with 0.1 m slack so the arm never over-extends). Pick
+  the object and place it inside the patch, matching x, y, AND z.
+  The goal relocates 1-3 times per episode -- each time the object
+  approaches it -- forcing the policy to replan mid-transport.
+max_episode_steps: 3000
+reward_type: sparse
+action_mode: cartesian_delta
+control_freq: 100
+
+# ── Physics ────────────────────────────────────────────────────────
+physics:
+  # Multi-point convex contacts: a flat cylinder or mesh face otherwise
+  # rests on one contact and rocks, creeps or sinks into its support.
+  multiccd: true
+
+# ── Scene geometry ─────────────────────────────────────────────────
+scene:
+  table:
+    full_size: [0.7, 0.7, 0.05]
+    height: 0.8
+    offset: null
+  robot_offset: null
+
+# ── Object placement bounds (meters from table center) ─────────────
+# Only used by robosuite's default sampler; this task overrides
+# placement in reset() to control object↔goal sampling explicitly.
+placement:
+  center: null
+  x_range: 0.28
+  y_range: 0.28
+
+# ── Domain randomization (re-sampled every reset) ─────────────────
+randomization:
+  object_color:
+    enabled: false   # YCB objects carry their own textures
+  lighting:
+    position: true
+    color: false
+
+# ── Task-specific parameters ───────────────────────────────────────
+task:
+  # Fresh pool of 7 medium, well-graspable YCB objects not used
+  # elsewhere in the codebase. Shortest bounding-box axis of each is
+  # <= 0.056 m (verified by mesh measurement), well inside the Franka
+  # parallel-jaw gripper's ~0.08 m max opening.
+  #
+  # `b_colored_wood_blocks` is excluded on purpose: its mesh is a
+  # 5-cube colour cluster welded into one rigid body and reads as
+  # several stray cubes spawning together.
+  ycb_pool:
+    - foam_brick             # brick, min axis 0.051 m
+    - large_marker           # cylinder, min axis 0.019 m
+    - padlock                # compact, min axis 0.029 m
+    - racquetball            # sphere, 0.056 m
+    - medium_clamp           # tool, min axis 0.026 m
+    - plum                   # sphere, 0.053 m
+    - golf_ball              # sphere, 0.043 m
+
+  # Green patch is a 0.15 m x 0.15 m square.
+  goal_side: 0.15
+  # Vertical tolerance above the patch surface for success.
+  goal_z_tol: 0.05
+
+  # Reachable workspace (table-center frame). Both object spawn and
+  # goal patch center are sampled uniformly in this box, after it is
+  # trimmed inward by `slack` on every side so the arm never has to
+  # fully extend.
+  reach_x_range: [-0.30, 0.35]
+  reach_y_range: [-0.32, 0.32]
+  slack: 0.10
+
+  # Minimum horizontal distance between object spawn and goal center
+  # so the object never spawns already inside the patch.
+  min_obj_goal_dist: 0.15
+
+  # Moving-goal caveat: at each reset we sample N in [n_min, n_max]
+  # (inclusive). The goal patch then relocates N times during the
+  # episode -- each relocation fires the moment the object has been
+  # lifted and comes within `approach_radius` of the current patch,
+  # forcing the policy to replan mid-transport. After the Nth
+  # relocation the goal stays put; placement credit and success only
+  # count against that final patch.
+  moving_goal:
+    n_min: 1
+    n_max: 3
+    # Euclidean radius (m) around the current goal that counts as "about
+    # to reach" (goal_side/2 = 0.075 is the patch half-width, so near a
+    # corner the object can be on the patch yet outside this radius).
+    approach_radius: 0.08
+    # New patch center must sit at least this far (m) from the old
+    # one so the relocation demands a real replan.
+    min_shift: 0.15
+    # Lift above the object's resting height (m) required for an
+    # approach to count -- avoids firing while the object is just
+    # sliding past.
+    min_lift: 0.03
+
+task_conditions:
+  success:
+    score_threshold: 1.0
+  failure:
+    floor_z_threshold: 0.05
+
+recording:
+  save_freq:
+    proprio: 100
+    force_torque: 50
+    object_state: 50
+    cameras: 25
+    tactile: 50
+  save:
+    action: true
+    reward: true
+    task_score: true
+    joint_positions: true
+    ee_poses: true
+
+controller:
+  type: OSC_POSE
+  robot: Panda
+  kp: 200
+  damping_ratio: 1
+  impedance_mode: fixed
+  uncouple_pos_ori: true
+  input_type: delta
+  input_ref_frame: base
+
+obs:
+  proprio:
+    enabled: true
+    keys:
+    - robot0_eef_pos
+    - robot0_eef_quat
+    - robot0_gripper_qpos
+    - robot0_joint_pos
+    - robot0_joint_vel
+    save: true
+  object_state:
+    enabled: true
+    save: true
+  cameras:
+    gripper_cam:
+      enabled: true
+      robosuite_name: robot0_eye_in_hand
+      width: 640
+      height: 480
+      depth: false
+      save: true
+    exo_front_cam:
+      enabled: true
+      robosuite_name: frontview
+      width: 640
+      height: 480
+      depth: false
+      save: true
+    exo_right_cam:
+      enabled: true
+      robosuite_name: agentview
+      pos: [0.0, -0.9, 1.2]
+      quat: [0.8254, 0.5646, 0.0, 0.0]
+      fovy: 60
+      width: 640
+      height: 480
+      depth: false
+      save: true
+    exo_left_cam:
+      enabled: true
+      robosuite_name: sideview
+      pos: [0.0, 0.9, 1.2]
+      quat: [0.0, 0.0, 0.5646, 0.8254]
+      fovy: 60
+      width: 640
+      height: 480
+      depth: false
+      save: true
+  force_torque:
+    enabled: true
+    keys:
+    - robot0_ft_sensor
+    save: true
+  tactile:
+    enabled: true
+    fingers:
+    - right
+    - left
+    rows: 8
+    cols: 8
+    spacing: 0.001
+    save: true

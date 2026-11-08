@@ -1,0 +1,88 @@
+[build-system]
+requires = ["setuptools>=77.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "imbench"
+version = "0.1.0"
+description = "IMBench: physics-based robotics benchmark and dataset library"
+readme = "README.md"
+requires-python = ">=3.11,<3.14"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [
+    {name = "Neomanav Robotics", email = "sukhvansh@manav.co"},
+]
+classifiers = [
+    # Source-install only (configs/ and deps/ are not in the wheel); PyPI rejects
+    # uploads carrying this classifier.
+    "Private :: Do Not Upload",
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Scientific/Engineering :: Robotics",
+]
+# robosuite 1.5.0/1.5.1 need mujoco>=3.2.3; robosuite 1.5.2 needs mujoco>=3.3,
+# which this release has not been validated against.
+dependencies = [
+    # numpy 2.5 changes float rounding and diverges chaotic scripted rollouts (see requirements.txt).
+    "numpy>=1.24,<2.5",
+    "pyyaml>=6.0",
+    "mujoco>=3.2.3,<3.3",
+    "robosuite>=1.5.0,<1.5.2",
+    "scipy>=1.10",
+    "opencv-python>=4.8",
+    "pillow>=9.0",
+    "pyarrow>=14.0.1",
+    "gymnasium>=0.29",
+]
+
+[project.optional-dependencies]
+# pyspacemouse 2.x drops the module-level read()/close() that SpaceMouseTeleop calls.
+teleop = ["pynput>=1.7", "pyspacemouse>=1.0,<2", "evdev>=1.6; sys_platform == 'linux'"]
+# Post-processing (scripts/convert_v21_to_v30.py) and the collection dashboard.
+# av 19 reports stream rates as AVRational, which convert_v21_to_v30.py cannot use.
+data = ["pandas>=2.0", "av>=12.0,<19", "tqdm>=4.60", "flask>=3.0"]
+dev = ["pytest>=7.0", "pytest-cov", "pytest-xdist>=3.0", "pytest-timeout>=2.0", "ipdb>=0.13"]
+
+[project.urls]
+Homepage = "https://imbench.org"
+Repository = "https://github.com/manav-robotics/imbench-release"
+Issues = "https://github.com/manav-robotics/imbench-release/issues"
+
+[tool.setuptools.packages.find]
+include = ["imbench*"]
+
+[tool.setuptools.package-data]
+imbench = ["grippers/assets/**/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-n auto --dist=loadscope --tb=short"
+markers = [
+    "slow: full-matrix parametrized tests (deselect with -m 'not slow')",
+]
+
+[tool.coverage.run]
+source = ["imbench"]
+branch = true
+omit = [
+    "imbench/teleop/*",
+    "imbench/utils/dashboard_reporter.py",
+    "*/__init__.py",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+]
+show_missing = true
+skip_covered = false

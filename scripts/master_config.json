@@ -1,0 +1,251 @@
+{
+    "tasks": {
+        "ib-p1-edge-slide-v1": {
+            "name": "Edge Slide and Grasp",
+            "subtasks": {},
+            "label_codes": {
+                "1": "success",
+                "2": "partial - partial_completion",
+                "3": "failure - task_failure"
+            }
+        },
+        "ib-p2-cube-toss-v1": {
+            "name": "Cube Toss",
+            "subtasks": {},
+            "label_codes": {
+                "1": "success",
+                "2": "partial - cube_landed_outside_goal",
+                "3": "failure - grasp_miss",
+                "4": "failure - cube_fell_off_table",
+                "5": "failure - throw_too_short",
+                "6": "failure - throw_too_far"
+            }
+        },
+        "ib-p4-tool-retrieve-v1": {
+            "name": "Tool-Use Retrieval",
+            "subtasks": {},
+            "label_codes": {
+                "1": "success",
+                "2": "partial - cube_in_reach_not_grasped",
+                "3": "failure - tool_not_grasped",
+                "4": "failure - cube_not_retrieved",
+                "5": "failure - grasp_miss",
+                "6": "failure - dropped_object"
+            }
+        },
+        "ib-p4-cup-extract-v1": {
+            "name": "Cup Extract (Single-Arm)",
+            "subtasks": {},
+            "label_codes": {
+                "1": "success",
+                "2": "partial - cuboid_extracted_not_placed",
+                "3": "failure - cup_not_grasped",
+                "4": "failure - cuboid_fell_off_table",
+                "5": "failure - placement_miss"
+            }
+        },
+        "ib-p2-pendulum-grasp-v1": {
+            "name": "Pendulum Grasp",
+            "subtasks": {},
+            "label_codes": {
+                "1": "success",
+                "2": "partial - pendulum_contacted_not_grasped",
+                "3": "failure - timing_miss",
+                "4": "failure - grasp_miss",
+                "5": "failure - arm_collision"
+            }
+        },
+        "ib-p3-domino-single-v1": {
+            "name": "Domino Chain Trigger — Single Chain",
+            "subtasks": {},
+            "label_codes": {
+                "1": "success",
+                "2": "partial - chain_partial",
+                "3": "failure - no_cascade",
+                "4": "failure - missed_domino",
+                "5": "failure - wrong_domino_pushed"
+            }
+        },
+        "ib-p3-domino-select-v1": {
+            "name": "Domino Chain Selection — Multiple Chains",
+            "subtasks": {},
+            "label_codes": {
+                "1": "success",
+                "2": "partial - partial_chain_toppled",
+                "3": "failure - wrong_chain_selected",
+                "4": "failure - no_cascade",
+                "5": "failure - missed_domino"
+            }
+        },
+        "ib-p3-seesaw-balance-v1": {
+            "name": "Seesaw Counterweight",
+            "subtasks": {},
+            "label_codes": {
+                "1": "success",
+                "2": "partial - seesaw_tipped_object_not_in_goal",
+                "3": "failure - wrong_counterweight",
+                "4": "failure - grasp_miss",
+                "5": "failure - object_fell_off"
+            }
+        },
+        "ib-p6-slip-recovery-v1": {
+            "name": "Slip Recovery",
+            "subtasks": {},
+            "label_codes": {
+                "1": "success",
+                "2": "partial - object_restabilized_not_transported",
+                "3": "failure - object_dropped",
+                "4": "failure - slip_not_detected",
+                "5": "failure - recovery_failed"
+            }
+        },
+        "ib-p2-linear-intercept-v1": {
+            "name": "Linear Intercept",
+            "subtasks": {},
+            "label_codes": {
+                "1": "success",
+                "2": "partial - object_contacted_not_grasped",
+                "3": "failure - timing_miss",
+                "4": "failure - object_exited_workspace",
+                "5": "failure - grasp_miss"
+            }
+        },
+        "ib-p2-bounce-intercept-v1": {
+            "name": "Post-Collision Intercept",
+            "subtasks": {},
+            "label_codes": {
+                "1": "success",
+                "2": "partial - object_contacted_not_grasped",
+                "3": "failure - timing_miss",
+                "4": "failure - object_exited_workspace",
+                "5": "failure - grasp_miss"
+            }
+        },
+        "ib-p5-mass-sort-v1": {
+            "name": "Adversarial Mass Sorting",
+            "subtasks": {},
+            "label_codes": {
+                "1": "success",
+                "2": "partial - partial_sort",
+                "3": "failure - wrong_mass_inference",
+                "4": "failure - grasp_miss",
+                "5": "failure - dropped_object"
+            }
+        },
+        "ib-p7-shape-stack-v1": {
+            "name": "Shape Stack",
+            "subtasks": {},
+            "label_codes": {
+                "1": "success",
+                "2": "partial - partial_stack",
+                "3": "failure - wrong_order",
+                "4": "failure - stack_collapsed",
+                "5": "failure - grasp_miss"
+            }
+        },
+        "ib-p2-ramp-sort-v1": {
+            "name": "Ramp Sort",
+            "subtasks": {},
+            "label_codes": {
+                "1": "success",
+                "2": "partial - partial_sort",
+                "3": "failure - wrong_release_point",
+                "4": "failure - object_missed_bin",
+                "5": "failure - grasp_miss"
+            }
+        },
+        "ib-p3-indirect-push-v1": {
+            "name": "Indirect Push",
+            "subtasks": {},
+            "label_codes": {
+                "1": "success",
+                "2": "partial - target_partially_moved",
+                "3": "failure - wrong_push_direction",
+                "4": "failure - blocks_misaligned",
+                "5": "failure - target_not_reached"
+            }
+        },
+        "ib-p1-cup-inversion-v1": {
+            "name": "Cup Extraction",
+            "subtasks": {},
+            "label_codes": {
+                "1": "success",
+                "2": "partial - cup_picked_not_inverted",
+                "3": "failure - grasp_miss",
+                "4": "failure - handover_failed",
+                "5": "failure - inversion_incomplete",
+                "6": "failure - dropped_object"
+            }
+        },
+        "ib-p1-bowl-table-v1": {
+            "name": "Bowl Inversion to Table",
+            "subtasks": {},
+            "label_codes": {
+                "1": "success",
+                "2": "partial - bowl_picked_not_placed",
+                "3": "failure - suction_failed",
+                "4": "failure - handover_failed",
+                "5": "failure - dropped_object"
+            }
+        },
+        "ib-p1-plate-shelf-hetbi-v1": {
+            "name": "Plate Table-to-Shelf",
+            "subtasks": {},
+            "label_codes": {
+                "1": "success",
+                "2": "partial - plate_picked_not_inserted",
+                "3": "failure - suction_failed",
+                "4": "failure - handover_failed",
+                "5": "failure - insertion_miss",
+                "6": "failure - dropped_object"
+            }
+        },
+        "ib-p7-packing-v1": {
+            "name": "Packing (Bimanual)",
+            "subtasks": {},
+            "label_codes": {
+                "1": "success",
+                "2": "partial - partial_pack",
+                "3": "failure - objects_overlap",
+                "4": "failure - grasp_miss",
+                "5": "failure - object_fell_off",
+                "6": "failure - object_not_flat"
+            }
+        },
+        "ib-p1-plate-shelf-hobi-v1": {
+            "name": "Plate Table-to-Shelf (Bimanual)",
+            "subtasks": {},
+            "label_codes": {
+                "1": "success",
+                "2": "partial - plate_lifted_not_inserted",
+                "3": "failure - grasp_miss",
+                "4": "failure - coordination_failure",
+                "5": "failure - insertion_miss",
+                "6": "failure - dropped_object"
+            }
+        },
+        "ib-m-freeform-v1": {
+            "name": "Freeform (Custom)",
+            "subtasks": {},
+            "label_codes": {
+                "1": "success",
+                "2": "partial - partial_completion",
+                "3": "failure - task_failure"
+            }
+        }
+    },
+    "crew": {
+        "operators": [
+            {
+                "id": "OP-001",
+                "name": ""
+            }
+        ],
+        "supervisors": [
+            {
+                "id": "SV-001",
+                "name": ""
+            }
+        ]
+    }
+}

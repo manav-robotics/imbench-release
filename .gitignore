@@ -1,0 +1,59 @@
+# Data & outputs
+demos/
+results/
+demos_synthetic/
+
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Build & packaging
+*.egg-info/
+*.egg
+dist/
+build/
+.eggs/
+sdist/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.claude/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Testing & coverage
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+scratch/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# MuJoCo / robosuite
+*.mujoco_lock
+MUJOCO_LOG.TXT
+
+# Local episode artefacts (videos / logs from policy runs)
+*.mp4
+*.log
+
+# Credentials — never commit
+.env
+.env.*

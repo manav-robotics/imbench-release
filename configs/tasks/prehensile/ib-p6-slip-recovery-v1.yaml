@@ -1,0 +1,173 @@
+task_id: ib-p6-slip-recovery-v1
+description: >-
+  Single arm: pick a small/medium YCB object from the table and place it
+  inside a green goal region, releasing it onto the table.
+max_episode_steps: 2000
+reward_type: sparse
+action_mode: cartesian_delta
+control_freq: 100
+
+# ── Physics ────────────────────────────────────────────────────────
+physics:
+  # Multi-point convex contacts: a flat cylinder or mesh face otherwise
+  # rests on one contact and rocks, creeps or sinks into its support.
+  multiccd: true
+
+# ── Scene geometry ─────────────────────────────────────────────────
+scene:
+  table:
+    full_size: [0.7, 0.7, 0.05]
+    height: 0.8
+    offset: null
+  robot_offset: null
+
+# ── Object placement bounds (meters from table center) ─────────────
+# Only used by robosuite's default sampler; this task overrides
+# placement in reset() to control the object↔goal distance explicitly.
+placement:
+  center: null
+  x_range: 0.28
+  y_range: 0.28
+
+# ── Domain randomization (re-sampled every reset) ─────────────────
+randomization:
+  object_color:
+    enabled: false   # YCB objects carry their own textures
+  lighting:
+    position: true
+    color: false
+
+# ── Task-specific parameters ───────────────────────────────────────
+task:
+  # Pool of small/medium YCB objects. Edit this list to restrict or
+  # extend the set of objects that may spawn.
+  ycb_pool:
+    - gelatin_box
+    - banana
+    - potted_meat_can
+    - rubiks_cube
+    - dice
+    - a_lego_duplo
+    - strawberry
+    - lemon
+  # Green region is a 0.15 m × 0.15 m square → half-extent 0.075 m.
+  goal_half_extent: 0.075
+  # Goal region center sampled uniformly in ±x, ±y around table center.
+  goal_xy_range: [0.18, 0.18]
+  # Object spawns at a distance in [min, max] meters from goal center —
+  # "a bit far but still easily reachable".
+  spawn_distance_range: [0.25, 0.30]
+
+  # ── Forced slippage during transport ─────────────────────────────
+  # Once per episode, while the object is lifted in transit, force the
+  # gripper action open for a short window so gravity drops the object
+  # and the policy is forced to re-grasp.
+  slippage:
+    enabled: true
+    # Minimum object-to-goal horizontal distance (m). The slip is
+    # guaranteed to fire while the object is still farther than this
+    # from the goal — if the policy approaches closer before the random
+    # target fires, the slip is forced immediately. Must exceed the goal
+    # half-diagonal (0.106 m) so the object is never dropped into the goal.
+    min_goal_dist: 0.15
+    # Minimum lift above the table (m) before a slip may count / fire.
+    min_lift: 0.05
+    # Variable slip timing — each episode samples a target number of
+    # consecutive lifted-and-far steps uniformly from this range.
+    hold_steps_range: [30, 200]
+    # Number of control steps the gripper action is forced open after
+    # slip triggers (policy's "close" commands are masked to "open").
+    open_window: 20
+
+task_conditions:
+  success:
+    score_threshold: 1.0
+  failure:
+    floor_z_threshold: 0.05
+
+recording:
+  save_freq:
+    proprio: 100
+    force_torque: 50
+    object_state: 50
+    cameras: 25
+    tactile: 50
+  save:
+    action: true
+    reward: true
+    task_score: true
+    joint_positions: true
+    ee_poses: true
+
+controller:
+  type: OSC_POSE
+  robot: Panda
+  kp: 200
+  damping_ratio: 1
+  impedance_mode: fixed
+  uncouple_pos_ori: true
+  input_type: delta
+  input_ref_frame: base
+
+obs:
+  proprio:
+    enabled: true
+    keys:
+    - robot0_eef_pos
+    - robot0_eef_quat
+    - robot0_gripper_qpos
+    - robot0_joint_pos
+    - robot0_joint_vel
+    save: true
+  object_state:
+    enabled: true
+    save: true
+  cameras:
+    gripper_cam:
+      enabled: true
+      robosuite_name: robot0_eye_in_hand
+      width: 640
+      height: 480
+      depth: false
+      save: true
+    exo_front_cam:
+      enabled: true
+      robosuite_name: frontview
+      width: 640
+      height: 480
+      depth: false
+      save: true
+    exo_right_cam:
+      enabled: true
+      robosuite_name: agentview
+      pos: [0.0, -0.9, 1.2]
+      quat: [0.8254, 0.5646, 0.0, 0.0]
+      fovy: 60
+      width: 640
+      height: 480
+      depth: false
+      save: true
+    exo_left_cam:
+      enabled: true
+      robosuite_name: sideview
+      pos: [0.0, 0.9, 1.2]
+      quat: [0.0, 0.0, 0.5646, 0.8254]
+      fovy: 60
+      width: 640
+      height: 480
+      depth: false
+      save: true
+  force_torque:
+    enabled: true
+    keys:
+    - robot0_ft_sensor
+    save: true
+  tactile:
+    enabled: true
+    fingers:
+    - right
+    - left
+    rows: 8
+    cols: 8
+    spacing: 0.001
+    save: true

@@ -1,0 +1,168 @@
+task_id: ib-m-keyboard-typing-v1
+description: >
+  Type a word on a large QWERTY virtual keyboard using two arms
+  (both with identical parallel-jaw finger grippers). Arm 0 presses
+  the letters at positions listed in arm0_indices in a scripted fashion,
+  while arm 1 is teleoperated to press the letters at arm1_indices.
+  Letters are typed in word order, each by the arm that owns it, so the
+  arms take turns; arm 1 pressing any other key is a typo and fails the
+  episode.
+  The word is drawn per episode from a word list (by the reset seed); the
+  arm assignment is configurable.
+
+max_episode_steps: 8000
+reward_type: sparse
+action_mode: cartesian_delta
+control_freq: 100
+
+# ── Task parameters ────────────────────────────────────────────────
+# Words drawn per episode (uppercase; all letters must exist on QWERTY A-Z).
+# The reset seed picks the word, along with the arm split and keyboard
+# jitter. Same 25 words as the demo collector's vocabulary
+# (data_synthetic/keyboard_words.txt); v2 tests a held-out list. Set
+# ``word: "..."`` to pin a single word instead.
+words: [
+  "NEURIPS", "PYTHON", "ROBUST", "VECTOR", "SIGNAL", "POLICY", "GRASP",
+  "OBJECT", "MATRIX", "PIXEL", "DEPTH", "FORCE", "JOINT", "TOUCH", "FRAME",
+  "CLAMP", "CABLE", "BRICK", "PLANE", "LIGHT", "SOUND", "DRIVE", "SMART",
+  "QUICK", "FOCUS"
+]
+
+# Indices of the word (0-based) that each arm types.
+# Together they must cover all positions exactly once.
+# Examples:
+#   Sequential split: arm0=[0,1,2,...,6], arm1=[7,8,...,11]
+#   Alternating:      arm0=[0,2,4,...],   arm1=[1,3,5,...]
+# If BOTH are empty (the default below) the task draws a fresh random
+# partition each reset using ``self._rng`` — every episode gets a
+# different split between the scripted (arm 0) and teleop (arm 1) arms.
+arm0_indices: []
+arm1_indices: []
+
+# Minimum letters arm 0 (scripted) must be assigned when the partition is
+# drawn randomly each reset. Ignored when arm0_indices/arm1_indices are
+# set explicitly. Clamped to len(word)-1 so arm 1 always has ≥1 letter.
+arm0_min_letters: 3
+
+# ── Key-press detection ────────────────────────────────────────────
+press_detection:
+  xy_tolerance: 0.025         # m — EEF must be within this of key centre (XY)
+  z_threshold_above_key: 0.001  # m — EEF z must be ≤ key_top_z + this value
+  hold_steps: 3               # consecutive steps in contact before counting
+
+# ── Scripted arm motion ────────────────────────────────────────────
+scripted_arm:
+  hover_height: 0.10          # m above key surface to hover before descending
+  approach_speed: 0.003       # m per step downward approach
+  lift_speed: 0.004           # m per step lift after press
+
+# ── Keyboard placement ─────────────────────────────────────────────
+keyboard:
+  pos: [0.0, 0.0]             # [x, y] centre on table (world frame)
+
+# ── Scene ──────────────────────────────────────────────────────────
+scene:
+  table:
+    height: 0.9
+    full_size: [1.2, 0.80, 0.05]
+    offset: [0, 0, 0.9]
+  robot_offset: null           # null = auto parallel layout
+
+# ── Task conditions ────────────────────────────────────────────────
+task_conditions:
+  success:
+    score_threshold: 1.0       # all letters typed
+  failure:
+    floor_z_threshold: 0.05    # keyboard dropped below table
+
+# ── Domain randomization ──────────────────────────────────────────
+randomization:
+  keyboard_position:
+    enabled: true
+    x_std: 0.02
+    y_std: 0.02
+  lighting:
+    position: true
+    color: false
+
+# ── Recording ─────────────────────────────────────────────────────
+recording:
+  save_freq:
+    proprio: 100
+    force_torque: 50
+    object_state: 50
+    cameras: 25
+    tactile: 50
+  save:
+    action: true
+    reward: true
+    task_score: true
+    joint_positions: true
+    ee_poses: true
+
+# ── Grippers (both finger/parallel-jaw) ───────────────────────────
+grippers:
+  - PandaGripper
+  - PandaGripper
+
+# ── Controllers (OSC_POSE for both arms) ──────────────────────────
+controller:
+  - type: OSC_POSE
+    robot: Panda
+    kp: 150
+    damping_ratio: 1.0
+    impedance_mode: fixed
+  - type: OSC_POSE
+    robot: Panda
+    kp: 150
+    damping_ratio: 1.0
+    impedance_mode: fixed
+
+# ── Observations ──────────────────────────────────────────────────
+obs:
+  proprio:
+    enabled: true
+    keys:
+      - robot0_eef_pos
+      - robot0_eef_quat
+      - robot0_gripper_qpos
+      - robot0_joint_pos
+      - robot0_joint_vel
+      - robot1_eef_pos
+      - robot1_eef_quat
+      - robot1_gripper_qpos
+      - robot1_joint_pos
+      - robot1_joint_vel
+    save: true
+  object_state:
+    enabled: true
+    save: true
+  cameras:
+    gripper0_cam:
+      enabled: true
+      robosuite_name: robot0_eye_in_hand
+      width: 640
+      height: 480
+      depth: false
+      save: true
+    gripper1_cam:
+      enabled: true
+      robosuite_name: robot1_eye_in_hand
+      width: 640
+      height: 480
+      depth: false
+      save: true
+    exo_bird_cam:
+      enabled: true
+      robosuite_name: birdview
+      width: 640
+      height: 480
+      depth: false
+      save: true
+    agent_cam:
+      enabled: true
+      robosuite_name: agentview
+      width: 640
+      height: 480
+      depth: false
+      save: true

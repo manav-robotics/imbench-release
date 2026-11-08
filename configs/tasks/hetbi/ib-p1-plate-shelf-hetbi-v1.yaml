@@ -1,0 +1,183 @@
+task_id: ib-p1-plate-shelf-hetbi-v1
+description: 'Plate lies flat on the table beside a shelf. Suction gripper (robot 0) attaches to the flat plate surface and
+  lifts it, then hands it over to finger gripper (robot 1) which grasps the plate edge and inserts it on-edge into  the center shelf
+  slot. A suction-only drop does not count; the jaw must independently hold and carry the plate after handover.
+
+  '
+max_episode_steps: 10000
+reward_type: sparse
+action_mode: cartesian_delta
+control_freq: 100
+
+# ── Physics ────────────────────────────────────────────────────────
+physics:
+  # Multi-point convex contacts: a flat cylinder or mesh face otherwise
+  # rests on one contact and rocks, creeps or sinks into its support.
+  multiccd: true
+
+# ── Scene ──────────────────────────────────────────────────────────
+# Opposed bimanual configuration (matches ib-p1-bowl-table-v1):
+# robot_offset null → defaults of ±0.6 along world Y; rotation_z
+# [-90, +90] swings the bases so R0 (suction) reaches into +Y from
+# y=-0.6 and R1 (parallel-jaw) reaches into -Y from y=+0.6.  This is
+# the only layout in which IK_POSE absolute holds position when sent
+# zero deltas — the parallel layout drifts because the IK nullspace
+# pulls the EEF away from the saved IK reference target.
+scene:
+  table:
+    height: 0.9
+    full_size: [1.2, 0.80, 0.05]
+    offset: null
+  robot_offset: null
+  robot_rotation_z: [-90, 90]
+  object_color: null
+  table_color: [1.0, 1.0, 1.0, 1.0]
+
+task_conditions:
+  success:
+    insertion_tolerance: 0.0005       # 0.5 mm numerical contact slack; full mesh containment required
+    on_edge_z_tol: 0.3                 # max |plate normal . world z| to count as on-edge
+  failure:
+    floor_drop_below: 0.05
+
+# ── Domain randomization (re-sampled every reset) ─────────────────
+randomization:
+  payload_mass:
+    enabled: true
+  payload_friction:
+    enabled: true
+  table_friction:
+    enabled: true
+  payload_placement:
+    enabled: true
+    x_std: 0.02
+    y_std: 0.02
+  object_color:
+    enabled: false
+  table_color:
+    enabled: false
+  lighting:
+    position: true
+    color: false
+  action_noise:
+    enabled: false
+  observation_noise:
+    enabled: false
+
+recording:
+  save_freq:
+    proprio: 100
+    force_torque: 50
+    object_state: 50
+    cameras: 25
+    tactile: 50
+  save:
+    action: true
+    reward: true
+    task_score: true
+    joint_positions: true
+    ee_poses: true
+
+payload: plate
+# Plate spawns at (0.40, -0.30) — empirically the position from which
+# R0 (suction, mounted at -Y in the opposed config) can reliably pick
+# the plate.
+payload_pos: [0.40, -0.30, 0.916]
+
+fixture: shelf
+fixture_pos: [-0.30, 0.0, 0.901]
+
+# R0 = suction, R1 = parallel jaw — matches the task description.
+grippers:
+- PandaSuctionGripper
+- PandaGripper
+
+# IK_POSE controller in absolute mode (matches ib-p1-bowl-table-v1).
+# The HetBi base step() pre-scales position deltas by ik_scale.pos_sensitivity
+# (0.005 m / unit) and orientation deltas by ik_scale.ori_sensitivity
+# (0.01 rad / unit) before the IK sees them, so a scripted policy can write
+# actions in [-1, 1] and get ~5 mm / 0.01 rad per control tick at 100 Hz.
+controller:
+- type: IK_POSE
+  robot: Panda
+  ik_pos_limit: 1.0
+  ik_ori_limit: 1.0
+  input_type: absolute
+  impedance_mode: fixed
+  kp: 10000
+  damping_ratio: 1
+  kp_limits: [0, 100000]
+- type: IK_POSE
+  robot: Panda
+  ik_pos_limit: 1.0
+  ik_ori_limit: 1.0
+  input_type: absolute
+  impedance_mode: fixed
+  kp: 10000
+  damping_ratio: 1
+  kp_limits: [0, 100000]
+ik_scale:
+  pos_sensitivity: 0.005
+
+obs:
+  proprio:
+    enabled: true
+    keys:
+    - robot0_eef_pos
+    - robot0_eef_quat
+    - robot0_gripper_qpos
+    - robot0_joint_pos
+    - robot0_joint_vel
+    - robot1_eef_pos
+    - robot1_eef_quat
+    - robot1_gripper_qpos
+    - robot1_joint_pos
+    - robot1_joint_vel
+    save: true
+  object_state:
+    enabled: true
+    save: true
+  cameras:
+    gripper0_cam:
+      enabled: true
+      robosuite_name: robot0_eye_in_hand
+      width: 640
+      height: 480
+      depth: false
+      save: true
+    gripper1_cam:
+      enabled: true
+      robosuite_name: robot1_eye_in_hand
+      width: 640
+      height: 480
+      depth: false
+      save: true
+    exo_bird_cam:
+      enabled: true
+      robosuite_name: birdview
+      width: 640
+      height: 480
+      depth: false
+      save: true
+    agent_cam:
+      enabled: true
+      robosuite_name: agentview
+      width: 640
+      height: 480
+      depth: false
+      save: true
+  force_torque:
+    enabled: true
+    keys:
+    - robot0_ft_sensor
+    - robot1_ft_sensor
+    save: true
+  tactile:
+    enabled: true
+    fingers:
+    - right
+    - left
+    rows: 8
+    cols: 8
+    spacing: 0.001
+    save: true

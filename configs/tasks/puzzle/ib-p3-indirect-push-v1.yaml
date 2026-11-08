@@ -1,0 +1,140 @@
+task_id: ib-p3-indirect-push-v1
+description: >-
+  Puzzle: blocks and a red target are scattered randomly on the table.
+  Arrange them into a chain, then push one end so force propagates
+  through and drives the target into the goal zone.
+max_episode_steps: 10000
+reward_type: sparse
+action_mode: cartesian_delta
+control_freq: 100
+
+scene:
+  table:
+    full_size: [1.1, 0.5, 0.05]
+    height: 0.8
+    offset: null
+  robot_offset: null
+
+# Initial placement sampler (read by SingleArmBase); reset() then places
+# every object explicitly.
+placement:
+  center: null
+  x_range: 0.12
+  y_range: 0.12
+
+randomization:
+  lighting:
+    position: true
+    color: false
+  chain:
+    num_range: [2, 6]
+    # size_range is left unset: _resize_box only updates geom_size, not
+    # body mass/inertia/rbound, so resized chain blocks get launched on
+    # first contact. All chain blocks use block_size.
+  goal:
+    y_range: [-0.15, 0.15]
+
+task:
+  block_size: 0.025
+  # Goal sits just beyond the Panda's ~0.85 m reach (base at
+  # table-x ≈ -0.71 with full_size[0]=1.1 → goal at x=0.28 is
+  # ~0.99 m away, ~0.15 m out of reach worst-case with y=±0.15).
+  goal_pos: [0.28, 0.0]
+  goal_tolerance: 0.03
+  num_chain: 4
+  scatter_region:
+    x_range: [-0.05, 0.12]
+    y_range: [-0.15, 0.15]
+
+task_conditions:
+  success:
+    score_threshold: 1.0
+  failure:
+    floor_z_threshold: 0.05
+
+recording:
+  save_freq:
+    proprio: 100
+    force_torque: 50
+    object_state: 50
+    cameras: 25
+    tactile: 50
+  save:
+    action: true
+    reward: true
+    task_score: true
+    joint_positions: true
+    ee_poses: true
+
+controller:
+  type: OSC_POSE
+  robot: Panda
+  kp: 200
+  damping_ratio: 1
+  impedance_mode: fixed
+  uncouple_pos_ori: true
+  input_type: delta
+  input_ref_frame: base
+
+obs:
+  proprio:
+    enabled: true
+    keys:
+    - robot0_eef_pos
+    - robot0_eef_quat
+    - robot0_gripper_qpos
+    - robot0_joint_pos
+    - robot0_joint_vel
+    save: true
+  object_state:
+    enabled: true
+    save: true
+  cameras:
+    gripper_cam:
+      enabled: true
+      robosuite_name: robot0_eye_in_hand
+      width: 640
+      height: 480
+      depth: false
+      save: true
+    exo_front_cam:
+      enabled: true
+      robosuite_name: frontview
+      width: 640
+      height: 480
+      depth: false
+      save: true
+    exo_right_cam:
+      enabled: true
+      robosuite_name: agentview
+      pos: [0.0, -0.9, 1.2]
+      quat: [0.8254, 0.5646, 0.0, 0.0]
+      fovy: 60
+      width: 640
+      height: 480
+      depth: false
+      save: true
+    exo_left_cam:
+      enabled: true
+      robosuite_name: sideview
+      pos: [0.0, 0.9, 1.2]
+      quat: [0.0, 0.0, 0.5646, 0.8254]
+      fovy: 60
+      width: 640
+      height: 480
+      depth: false
+      save: true
+  force_torque:
+    enabled: true
+    keys:
+    - robot0_ft_sensor
+    save: true
+  tactile:
+    enabled: true
+    fingers:
+    - right
+    - left
+    rows: 8
+    cols: 8
+    spacing: 0.001
+    save: true

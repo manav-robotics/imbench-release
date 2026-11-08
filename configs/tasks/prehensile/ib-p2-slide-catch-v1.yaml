@@ -1,0 +1,224 @@
+task_id: ib-p2-slide-catch-v1
+description: >-
+  Single arm: an incline tilts up from a shallow initial angle. Two or
+  three small cubes with different friction sit on it and begin sliding
+  (not rolling) at different times. Move the bin held in the gripper to
+  the bottom edge of the incline to catch every cube before it falls.
+max_episode_steps: 3000
+reward_type: sparse
+action_mode: cartesian_delta
+control_freq: 100
+
+# ── Scene geometry ─────────────────────────────────────────────────
+# The incline's down-slope direction points at the robot (-X). The hinge
+# sits on the table's robot-facing (-X) edge, so any uncaught cube falls
+# toward the robot.
+scene:
+  table:
+    full_size: [0.5, 0.7, 0.05]
+    height: 0.8
+    offset: [0.5, 0.0, 0.8]
+  robot_offset: null
+
+# ── Initial placement sampler (reset() then places objects explicitly) ──
+placement:
+  center: null
+  x_range: 0.0
+  y_range: 0.0
+  ensure_valid_placement: false
+
+# ── Domain randomization (re-sampled every reset) ─────────────────
+randomization:
+  object_color:
+    enabled: true
+  lighting:
+    position: true
+    color: true
+
+# ── Task-specific parameters ───────────────────────────────────────
+task:
+  # Incline plate (flat, hinged at its lower edge). The hinge runs along
+  # world Y on the table's -X edge; the slope faces the robot.
+  incline_length: 0.55
+  incline_width: 0.45
+  incline_thickness: 0.008
+  # MuJoCo combines two contact frictions by taking the MAX, so the
+  # plate's friction floors the effective μ at every cube/plate contact.
+  # Set it BELOW the lowest per-cube friction so each cube's μ controls
+  # its own slipping behaviour.
+  incline_friction: 0.05
+  # Distance from the table centre to the hinge, along -X. Should match
+  # table_full_size[0] / 2 so cubes that slide off fall past the table
+  # edge toward the robot.
+  hinge_offset: 0.25
+
+  # Tilt schedule, drawn per episode: start angle and rate, plus ONE
+  # mid-episode event that either pauses the tilt or speeds it up, so
+  # timing learned from the start rate does not carry through.
+  initial_tilt_deg_range: [6.0, 12.0]
+  tilt_rate_deg_per_s_range: [1.0, 2.5]
+  max_tilt_deg: 55.0
+  tilt_event:
+    kinds: [pause, speedup]
+    time_s: [3.0, 12.0]      # when the event happens
+    pause_s: [1.0, 3.0]      # pause length
+    speedup: [1.5, 2.0]      # rate multiplier from the event on
+
+  # Incline pose and look, drawn per episode. The incline yaws about its
+  # hinge centre and shifts sideways; the hinge line's inner end always
+  # sits on the table's robot-facing edge so a cube that slides off
+  # falls past the table.
+  incline_y_shift: 0.10      # ± m
+  incline_yaw_deg: 15.0      # ± deg
+  incline_color: true
+
+  # Cubes (flat tiles — wider footprint than height so they slide
+  # cleanly down the incline rather than toppling). ``num_cubes`` bodies
+  # are built; each episode uses a count from ``num_cubes_range`` and
+  # parks the rest off-scene. Each cube draws its own friction, size and
+  # spot on the plate, so which cube slides first, when and in which
+  # lane all vary. Lanes never overlap, so cubes cannot collide.
+  num_cubes: 3
+  num_cubes_range: [2, 3]   # never a single cube
+  cube_friction_independent: [0.22, 0.55]   # slip angle 12.4°–28.8°
+  cube_footprint_range: [0.014, 0.022]      # half-extent in x and y
+  cube_height_ratio: 0.3333                  # half-height / footprint
+  cube_footprint: 0.018     # fixed size, used only without cube_footprint_range
+  cube_height: 0.006        # fixed size, used only without cube_footprint_range
+
+  # Arm start: the gripper starts offset from its home pose by
+  # U(±x), U(±y), U(z_low, z_high) metres, same orientation.
+  eef_start_jitter: [0.08, 0.08, -0.04, 0.08]
+
+  # Every drawn scene is redrawn until a teleoperator can catch every
+  # cube: moving the bin at teleop_speed per axis (the gamepad at its
+  # default speed reaches ~0.10 m/s), with reaction_s per catch, from
+  # the bin's start pose to each cube's catch point in the order a 1-D
+  # sliding model predicts the cubes leave the plate.
+  feasibility:
+    enabled: true
+    teleop_speed: 0.08
+    reaction_s: 1.0
+    latest_departure_s: 27.0   # the episode is 30 s
+    min_slip_margin_deg: 2.0   # no cube slides at the start angle
+    pause_slip_clearance_deg: 1.5  # a pause never holds the tilt at a slip angle
+    model_margin_s: 1.0        # cubes left up to 0.84 s before the model said (350 seeds)
+    max_tries: 3000            # 3-cube scenes take up to ~760 draws (2,000 seeds)
+    model_mu_scale: 1.05       # fitted to MuJoCo: 294 cubes, 150 seeds
+    model_kinetic_scale: 1.05
+
+  # Bin (graspable tray with vertical handle).
+  bin_inner_half_x: 0.06
+  bin_inner_half_y: 0.06
+  # Walls/floor thick enough that fast cubes don't tunnel through in
+  # one physics step. With a 100Hz control loop and cubes accelerating
+  # off the slope at >1 m/s, a sub-1cm floor lets cubes punch through.
+  bin_wall: 0.012
+  bin_wall_height: 0.05     # deep enough for three stacked cubes (rim stays under the table top when catching)
+  bin_handle_height: 0.05
+  bin_handle_half_thickness: 0.006
+  bin_density: 250
+  bin_friction: 0.7
+  bin_init_x: -0.12
+  bin_init_y: 0.0
+
+  # When true the bin spawns rigidly attached to the gripper and the
+  # gripper command is forced closed every step — the operator only
+  # has to position the bin to catch the cubes.
+  bin_attached_to_gripper: true
+
+task_conditions:
+  success:
+    score_threshold: 1.0
+  failure:
+    floor_z_threshold: 0.05
+
+recording:
+  save_freq:
+    proprio: 100
+    force_torque: 50
+    object_state: 50
+    cameras: 25
+    tactile: 50
+  save:
+    action: true
+    reward: true
+    task_score: true
+    joint_positions: true
+    ee_poses: true
+
+controller:
+  type: OSC_POSE
+  robot: Panda
+  kp: 200
+  damping_ratio: 1
+  impedance_mode: fixed
+  uncouple_pos_ori: true
+  input_type: delta
+  input_ref_frame: base
+
+obs:
+  proprio:
+    enabled: true
+    keys:
+    - robot0_eef_pos
+    - robot0_eef_quat
+    - robot0_gripper_qpos
+    - robot0_joint_pos
+    - robot0_joint_vel
+    save: true
+  object_state:
+    enabled: true
+    save: true
+  cameras:
+    gripper_cam:
+      enabled: true
+      robosuite_name: robot0_eye_in_hand
+      width: 640
+      height: 480
+      depth: false
+      save: true
+    exo_bird_cam:
+      enabled: true
+      robosuite_name: birdview
+      pos: [0.5, 0.0, 2.0]
+      quat: [0.0, 0.0, 0.0, 1.0]
+      fovy: 60
+      width: 640
+      height: 480
+      depth: false
+      save: true
+    exo_right_cam:
+      enabled: true
+      robosuite_name: agentview
+      pos: [0.0, -0.9, 1.2]
+      quat: [0.8254, 0.5646, 0.0, 0.0]
+      fovy: 60
+      width: 640
+      height: 480
+      depth: false
+      save: true
+    exo_left_cam:
+      enabled: true
+      robosuite_name: sideview
+      pos: [0.0, 0.9, 1.2]
+      quat: [0.0, 0.0, 0.5646, 0.8254]
+      fovy: 60
+      width: 640
+      height: 480
+      depth: false
+      save: true
+  force_torque:
+    enabled: true
+    keys:
+    - robot0_ft_sensor
+    save: true
+  tactile:
+    enabled: true
+    fingers:
+    - right
+    - left
+    rows: 8
+    cols: 8
+    spacing: 0.001
+    save: true

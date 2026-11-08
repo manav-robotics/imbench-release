@@ -1,0 +1,188 @@
+task_id: ib-p1-cracker-box-jaw-v1
+description: 'Parallel-jaw-only variant of the cracker-box slot-insertion task. Both arms are in the scene but the suction-gripper
+  arm (robot 1) is frozen — only the finger-gripper arm (robot 0) is controllable. The jaw gripper must pick the box off
+  the table and slide it into the slot on its own.
+
+  '
+max_episode_steps: 7000
+reward_type: sparse
+action_mode: cartesian_delta
+control_freq: 100
+
+# ── Physics ────────────────────────────────────────────────────────
+physics:
+  # Multi-point convex contacts: a flat cylinder or mesh face otherwise
+  # rests on one contact and rocks, creeps or sinks into its support.
+  multiccd: true
+
+# ── Scene ──────────────────────────────────────────────────────────
+scene:
+  table:
+    height: 0.9
+    full_size: [1.0, 0.75, 0.05]
+    offset: null
+  robot_offset: null
+  robot_rotation_z: [-90, 90]
+  object_color: null                   # base payload RGBA; null = use mesh texture
+  table_color: [1.0, 1.0, 1.0, 1.0]   # base table-top RGBA (white)
+
+task_conditions:
+  success:
+    dist_threshold: 0.04
+    lift_height: null
+    insert_max_tilt_deg: 20.0         # box long/thin axes vs slot length/opening axes
+  failure:
+    floor_drop_below: 0.05
+
+# ── Domain randomization (re-sampled every reset) ─────────────────
+# Physics axes (mass/friction) apply only with BOTH enabled: true AND a
+# range; ranges use [min, max] uniform sampling.
+randomization:
+  # ── Physics ──
+  payload_mass:                        # payload body mass (kg)
+    enabled: true
+    # range: [0.05, 0.20]
+  payload_friction:                    # payload sliding friction
+    enabled: true
+    # range: [0.2, 0.8]
+  table_friction:                      # table surface sliding friction
+    enabled: true
+    # range: [0.5, 1.5]
+  # ── Placement ──
+  payload_placement:                   # Gaussian jitter on payload start position
+    enabled: true
+    x_std: 0.04                       # std dev in meters for x-axis (kept small
+                                       # so the box stays in R0's reachable band)
+    y_std: 0.03                       # std dev in meters for y-axis
+  # ── Visual ──
+  object_color:                        # randomize payload RGBA each reset
+    enabled: false
+  table_color:                         # randomize table-top RGBA each reset
+    enabled: false
+  lighting:
+    position: true                     # randomize light position each reset
+    color: false                       # randomize light diffuse/ambient color
+  # ── Dynamics ──
+  action_noise:                        # Gaussian noise on commanded actions
+    enabled: false
+    # std: 0.01
+  observation_noise:                   # Gaussian noise on proprio observations
+    enabled: false
+    # std: 0.005
+
+recording:
+  save_freq:
+    proprio: 100
+    force_torque: 50
+    object_state: 50
+    cameras: 25
+    tactile: 50
+  save:
+    action: true
+    reward: true
+    task_score: true
+    joint_positions: true
+    ee_poses: true
+payload: cracker_box
+# Place the cracker box on R0's (jaw, base at y=-0.66) side of the table
+# so the top-down jaw approach can actually descend onto it. A centred
+# (0.10, 0.0) is at the y workspace edge; R0 cannot bring the EEF down
+# to box height there. The z (1.009 = table_z + |bottom_offset| + slack)
+# stands the box upright on the table surface.
+payload_pos: [0.10, -0.20, 1.009]
+fixture: slot
+# Slot within R0's reach. fix_z = 0.97 places the (rotated) channel bottom
+# on the table top.
+fixture_pos: [-0.25, 0.0, 0.97]
+grippers:
+- PandaGripper
+- PandaSuctionGripper
+payload_quat:                         # +90° rotation about world Z
+- 0.7071068
+- 0
+- 0
+- 0.7071068
+fixture_quat:
+- 0.7071068
+- 0.7071068
+- 0
+- 0
+controller:
+- type: OSC_POSE
+  robot: Panda
+  kp: 200
+  damping_ratio: 1
+  impedance_mode: fixed
+  uncouple_pos_ori: true
+  input_type: delta
+  input_ref_frame: base
+- type: OSC_POSE
+  robot: Panda
+  kp: 200
+  damping_ratio: 1
+  impedance_mode: fixed
+  uncouple_pos_ori: true
+  input_type: delta
+  input_ref_frame: base
+obs:
+  proprio:
+    enabled: true
+    keys:
+    - robot0_eef_pos
+    - robot0_eef_quat
+    - robot0_gripper_qpos
+    - robot0_joint_pos
+    - robot0_joint_vel
+    - robot1_eef_pos
+    - robot1_eef_quat
+    - robot1_gripper_qpos
+    - robot1_joint_pos
+    - robot1_joint_vel
+    save: true
+  object_state:
+    enabled: true
+    save: true
+  cameras:
+    gripper0_cam:
+      enabled: true
+      robosuite_name: robot0_eye_in_hand
+      width: 640
+      height: 480
+      depth: false
+      save: true
+    gripper1_cam:
+      enabled: true
+      robosuite_name: robot1_eye_in_hand
+      width: 640
+      height: 480
+      depth: false
+      save: true
+    exo_bird_cam:
+      enabled: true
+      robosuite_name: birdview
+      width: 640
+      height: 480
+      depth: false
+      save: true
+    agent_cam:
+      enabled: true
+      robosuite_name: agentview
+      width: 640
+      height: 480
+      depth: false
+      save: true
+  force_torque:
+    enabled: true
+    keys:
+    - robot0_ft_sensor
+    - robot1_ft_sensor
+    save: true
+  tactile:
+    enabled: true
+    fingers:
+    - right
+    - left
+    rows: 8
+    cols: 8
+    spacing: 0.001
+    save: true

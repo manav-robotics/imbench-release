@@ -1,0 +1,10 @@
+# numpy 2.5 rounds differently and flips marginal scripted rollouts; validated on 2.4.6.
+numpy==2.4.6
+pyyaml>=6.0
+mujoco==3.2.6
+robosuite==1.5.1
+scipy>=1.10
+opencv-python>=4.8
+pillow>=9.0
+pyarrow>=14.0.1
+gymnasium>=0.29

@@ -1,0 +1,413 @@
+<mujoco model="galileo_ramp">
+  <asset>
+    <mesh name="galileo_ramp_channel_mesh" file="galileo_ramp_channel.stl"/>
+    <mesh name="galileo_ramp_side_mesh" file="galileo_ramp_side.stl"/>
+
+    <!-- Two-tone wood finish, lit with a bit of specular sheen. Mahogany for
+         the furniture (base, feet, side supports); lighter oak for the
+         sliding surface; dark walnut trim. -->
+    <material name="wood_mahogany" rgba="0.42 0.22 0.12 1"
+              specular="0.35" shininess="0.45" reflectance="0.10"/>
+    <material name="wood_oak"      rgba="0.86 0.58 0.30 1"
+              specular="0.55" shininess="0.65" reflectance="0.15"/>
+    <material name="wood_walnut"   rgba="0.24 0.13 0.07 1"
+              specular="0.30" shininess="0.40" reflectance="0.08"/>
+    <material name="wood_trim"     rgba="0.32 0.17 0.09 1"
+              specular="0.30" shininess="0.40" reflectance="0.08"/>
+  </asset>
+  <worldbody>
+    <body>
+      <body name="object" pos="0 0 0">
+        <!--
+          Symmetric Galileo ramp. Origin at centre of base plate's top face.
+          +Y = ball travel (long axis), +X = channel width (short), +Z = up.
+          Arc inner surface: radius 0.24 m, half-angle 75 deg.
+          Arc trough bottom sits at z = 0.015; endpoints at z ~= 0.193.
+          Mesh used for visuals; collision for the curved channel is a
+          sequence of thin tangent box segments (channel_col_*) because
+          MuJoCo convexifies mesh collisions.
+        -->
+
+        <!-- === Pedestal / base (tiered for a finished furniture look) === -->
+        <!-- Lower plinth (darkest, widest). -->
+        <geom name="plinth_vis" type="box"
+              pos="0 0 -0.024" size="0.066 0.265 0.008"
+              material="wood_walnut" group="1"
+              contype="0" conaffinity="0"/>
+        <geom name="plinth_col" type="box"
+              pos="0 0 -0.024" size="0.066 0.265 0.008"
+              material="wood_walnut" group="0"
+              friction="0 0 0"/>
+
+        <!-- Main base plate (mahogany). -->
+        <geom name="base_vis" type="box"
+              pos="0 0 -0.009" size="0.058 0.250 0.007"
+              material="wood_mahogany" group="1"
+              contype="0" conaffinity="0"/>
+        <geom name="base_col" type="box"
+              pos="0 0 -0.009" size="0.058 0.250 0.007"
+              material="wood_mahogany" group="0"
+              friction="0 0 0"/>
+
+        <!-- Thin trim strip on top of the base (lighter, creates a ledge). -->
+        <geom name="trim_vis" type="box"
+              pos="0 0 -0.0015" size="0.054 0.246 0.0015"
+              material="wood_trim" group="1"
+              contype="0" conaffinity="0"/>
+
+        <!-- Ornamental end-caps at each Y extreme (like the carved feet in the photo). -->
+        <geom name="endcap_pos_y_vis" type="box"
+              pos="0 0.248 -0.016" size="0.060 0.017 0.014"
+              material="wood_walnut" group="1"
+              contype="0" conaffinity="0"/>
+        <geom name="endcap_neg_y_vis" type="box"
+              pos="0 -0.248 -0.016" size="0.060 0.017 0.014"
+              material="wood_walnut" group="1"
+              contype="0" conaffinity="0"/>
+
+        <!-- Four corner feet, so the whole thing looks like it's resting
+             on dainty wooden feet rather than a flat slab. -->
+        <geom name="foot_pp_vis" type="box"
+              pos="+0.054 +0.245 -0.034" size="0.008 0.014 0.004"
+              material="wood_walnut" group="1"
+              contype="0" conaffinity="0"/>
+        <geom name="foot_np_vis" type="box"
+              pos="-0.054 +0.245 -0.034" size="0.008 0.014 0.004"
+              material="wood_walnut" group="1"
+              contype="0" conaffinity="0"/>
+        <geom name="foot_pn_vis" type="box"
+              pos="+0.054 -0.245 -0.034" size="0.008 0.014 0.004"
+              material="wood_walnut" group="1"
+              contype="0" conaffinity="0"/>
+        <geom name="foot_nn_vis" type="box"
+              pos="-0.054 -0.245 -0.034" size="0.008 0.014 0.004"
+              material="wood_walnut" group="1"
+              contype="0" conaffinity="0"/>
+
+        <!-- === Curved channel (the sliding surface) === -->
+        <!-- Smooth arc mesh — VISUAL ONLY (MuJoCo would convexify for collision). -->
+        <geom name="channel_vis" type="mesh" mesh="galileo_ramp_channel_mesh"
+              material="wood_oak" group="1"
+              contype="0" conaffinity="0"/>
+
+        <!-- === Side panels (with visible U-cut) ===
+             Long mahogany boards running the full length of the base, with
+             their top edge carved as a downward arc so the channel's curve is
+             plainly visible from the side (compare to Galileo's original).
+             Each panel mesh is centred at x=0 and extends +/-0.005 in X;
+             base half-width is 0.058, so flush placement with a 1mm reveal
+             puts panel centres at x = +/-0.052. -->
+        <!-- Visual-only. The mesh's concave U-cut cannot be used for
+             collision (MuJoCo convexifies meshes to their hull, which would
+             fill in the trough). The channel_col_* box segments below already
+             provide correct curved collision for the trough. -->
+        <geom name="side_pos_x_vis" type="mesh" mesh="galileo_ramp_side_mesh"
+              pos="0.052 0 0" material="wood_mahogany" group="1"
+              contype="0" conaffinity="0"/>
+        <geom name="side_neg_x_vis" type="mesh" mesh="galileo_ramp_side_mesh"
+              pos="-0.052 0 0" material="wood_mahogany" group="1"
+              contype="0" conaffinity="0"/>
+
+
+        <!-- === Collision strip for the curved channel ===
+             72 thin box segments tangent to the inner arc, ~2.08 deg each.
+             Friction set to zero so the ball rolls without loss. Regenerated
+             by scripts/generate_galileo_ramp_mesh.py. -->
+        <geom name="channel_col_00" type="box" pos="0 -0.23354 +0.18785" size="0.03000 0.00445 0.00300" euler="-1.290811 0 0" rgba="0 0 0 0" group="0" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="channel_col_01" type="box" pos="0 -0.23094 +0.17940" size="0.03000 0.00445 0.00300" euler="-1.254455 0 0" rgba="0 0 0 0" group="0" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="channel_col_02" type="box" pos="0 -0.22804 +0.17106" size="0.03000 0.00445 0.00300" euler="-1.218100 0 0" rgba="0 0 0 0" group="0" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="channel_col_03" type="box" pos="0 -0.22484 +0.16282" size="0.03000 0.00445 0.00300" euler="-1.181728 0 0" rgba="0 0 0 0" group="0" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="channel_col_04" type="box" pos="0 -0.22134 +0.15471" size="0.03000 0.00445 0.00300" euler="-1.145372 0 0" rgba="0 0 0 0" group="0" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="channel_col_05" type="box" pos="0 -0.21755 +0.14673" size="0.03000 0.00445 0.00300" euler="-1.109017 0 0" rgba="0 0 0 0" group="0" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="channel_col_06" type="box" pos="0 -0.21347 +0.13890" size="0.03000 0.00445 0.00300" euler="-1.072644 0 0" rgba="0 0 0 0" group="0" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="channel_col_07" type="box" pos="0 -0.20911 +0.13121" size="0.03000 0.00445 0.00300" euler="-1.036289 0 0" rgba="0 0 0 0" group="0" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="channel_col_08" type="box" pos="0 -0.20447 +0.12369" size="0.03000 0.00445 0.00300" euler="-0.999934 0 0" rgba="0 0 0 0" group="0" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="channel_col_09" type="box" pos="0 -0.19956 +0.11635" size="0.03000 0.00445 0.00300" euler="-0.963561 0 0" rgba="0 0 0 0" group="0" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="channel_col_10" type="box" pos="0 -0.19439 +0.10918" size="0.03000 0.00445 0.00300" euler="-0.927206 0 0" rgba="0 0 0 0" group="0" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="channel_col_11" type="box" pos="0 -0.18896 +0.10221" size="0.03000 0.00445 0.00300" euler="-0.890851 0 0" rgba="0 0 0 0" group="0" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="channel_col_12" type="box" pos="0 -0.18328 +0.09544" size="0.03000 0.00445 0.00300" euler="-0.854478 0 0" rgba="0 0 0 0" group="0" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="channel_col_13" type="box" pos="0 -0.17736 +0.08889" size="0.03000 0.00445 0.00300" euler="-0.818123 0 0" rgba="0 0 0 0" group="0" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="channel_col_14" type="box" pos="0 -0.17120 +0.08255" size="0.03000 0.00445 0.00300" euler="-0.781768 0 0" rgba="0 0 0 0" group="0" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="channel_col_15" type="box" pos="0 -0.16482 +0.07644" size="0.03000 0.00445 0.00300" euler="-0.745395 0 0" rgba="0 0 0 0" group="0" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="channel_col_16" type="box" pos="0 -0.15822 +0.07057" size="0.03000 0.00445 0.00300" euler="-0.709040 0 0" rgba="0 0 0 0" group="0" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="channel_col_17" type="box" pos="0 -0.15141 +0.06494" size="0.03000 0.00445 0.00300" euler="-0.672685 0 0" rgba="0 0 0 0" group="0" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="channel_col_18" type="box" pos="0 -0.14440 +0.05956" size="0.03000 0.00445 0.00300" euler="-0.636312 0 0" rgba="0 0 0 0" group="0" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="channel_col_19" type="box" pos="0 -0.13720 +0.05444" size="0.03000 0.00445 0.00300" euler="-0.599957 0 0" rgba="0 0 0 0" group="0" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="channel_col_20" type="box" pos="0 -0.12982 +0.04958" size="0.03000 0.00445 0.00300" euler="-0.563602 0 0" rgba="0 0 0 0" group="0" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="channel_col_21" type="box" pos="0 -0.12226 +0.04500" size="0.03000 0.00445 0.00300" euler="-0.527229 0 0" rgba="0 0 0 0" group="0" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="channel_col_22" type="box" pos="0 -0.11455 +0.04069" size="0.03000 0.00445 0.00300" euler="-0.490874 0 0" rgba="0 0 0 0" group="0" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="channel_col_23" type="box" pos="0 -0.10668 +0.03667" size="0.03000 0.00445 0.00300" euler="-0.454519 0 0" rgba="0 0 0 0" group="0" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="channel_col_24" type="box" pos="0 -0.09868 +0.03294" size="0.03000 0.00445 0.00300" euler="-0.418146 0 0" rgba="0 0 0 0" group="0" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="channel_col_25" type="box" pos="0 -0.09054 +0.02950" size="0.03000 0.00445 0.00300" euler="-0.381791 0 0" rgba="0 0 0 0" group="0" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="channel_col_26" type="box" pos="0 -0.08228 +0.02635" size="0.03000 0.00445 0.00300" euler="-0.345436 0 0" rgba="0 0 0 0" group="0" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="channel_col_27" type="box" pos="0 -0.07391 +0.02351" size="0.03000 0.00445 0.00300" euler="-0.309063 0 0" rgba="0 0 0 0" group="0" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="channel_col_28" type="box" pos="0 -0.06545 +0.02098" size="0.03000 0.00445 0.00300" euler="-0.272708 0 0" rgba="0 0 0 0" group="0" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="channel_col_29" type="box" pos="0 -0.05690 +0.01876" size="0.03000 0.00445 0.00300" euler="-0.236352 0 0" rgba="0 0 0 0" group="0" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="channel_col_30" type="box" pos="0 -0.04827 +0.01684" size="0.03000 0.00445 0.00300" euler="-0.199980 0 0" rgba="0 0 0 0" group="0" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="channel_col_31" type="box" pos="0 -0.03958 +0.01525" size="0.03000 0.00445 0.00300" euler="-0.163625 0 0" rgba="0 0 0 0" group="0" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="channel_col_32" type="box" pos="0 -0.03084 +0.01397" size="0.03000 0.00445 0.00300" euler="-0.127269 0 0" rgba="0 0 0 0" group="0" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="channel_col_33" type="box" pos="0 -0.02206 +0.01300" size="0.03000 0.00445 0.00300" euler="-0.090897 0 0" rgba="0 0 0 0" group="0" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="channel_col_34" type="box" pos="0 -0.01325 +0.01236" size="0.03000 0.00445 0.00300" euler="-0.054542 0 0" rgba="0 0 0 0" group="0" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="channel_col_35" type="box" pos="0 -0.00442 +0.01204" size="0.03000 0.00445 0.00300" euler="-0.018186 0 0" rgba="0 0 0 0" group="0" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="channel_col_36" type="box" pos="0 +0.00442 +0.01204" size="0.03000 0.00445 0.00300" euler="0.018186 0 0" rgba="0 0 0 0" group="0" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="channel_col_37" type="box" pos="0 +0.01325 +0.01236" size="0.03000 0.00445 0.00300" euler="0.054542 0 0" rgba="0 0 0 0" group="0" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="channel_col_38" type="box" pos="0 +0.02206 +0.01300" size="0.03000 0.00445 0.00300" euler="0.090897 0 0" rgba="0 0 0 0" group="0" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="channel_col_39" type="box" pos="0 +0.03084 +0.01397" size="0.03000 0.00445 0.00300" euler="0.127269 0 0" rgba="0 0 0 0" group="0" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="channel_col_40" type="box" pos="0 +0.03958 +0.01525" size="0.03000 0.00445 0.00300" euler="0.163625 0 0" rgba="0 0 0 0" group="0" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="channel_col_41" type="box" pos="0 +0.04827 +0.01684" size="0.03000 0.00445 0.00300" euler="0.199980 0 0" rgba="0 0 0 0" group="0" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="channel_col_42" type="box" pos="0 +0.05690 +0.01876" size="0.03000 0.00445 0.00300" euler="0.236352 0 0" rgba="0 0 0 0" group="0" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="channel_col_43" type="box" pos="0 +0.06545 +0.02098" size="0.03000 0.00445 0.00300" euler="0.272708 0 0" rgba="0 0 0 0" group="0" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="channel_col_44" type="box" pos="0 +0.07391 +0.02351" size="0.03000 0.00445 0.00300" euler="0.309063 0 0" rgba="0 0 0 0" group="0" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="channel_col_45" type="box" pos="0 +0.08228 +0.02635" size="0.03000 0.00445 0.00300" euler="0.345436 0 0" rgba="0 0 0 0" group="0" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="channel_col_46" type="box" pos="0 +0.09054 +0.02950" size="0.03000 0.00445 0.00300" euler="0.381791 0 0" rgba="0 0 0 0" group="0" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="channel_col_47" type="box" pos="0 +0.09868 +0.03294" size="0.03000 0.00445 0.00300" euler="0.418146 0 0" rgba="0 0 0 0" group="0" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="channel_col_48" type="box" pos="0 +0.10668 +0.03667" size="0.03000 0.00445 0.00300" euler="0.454519 0 0" rgba="0 0 0 0" group="0" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="channel_col_49" type="box" pos="0 +0.11455 +0.04069" size="0.03000 0.00445 0.00300" euler="0.490874 0 0" rgba="0 0 0 0" group="0" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="channel_col_50" type="box" pos="0 +0.12226 +0.04500" size="0.03000 0.00445 0.00300" euler="0.527229 0 0" rgba="0 0 0 0" group="0" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="channel_col_51" type="box" pos="0 +0.12982 +0.04958" size="0.03000 0.00445 0.00300" euler="0.563602 0 0" rgba="0 0 0 0" group="0" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="channel_col_52" type="box" pos="0 +0.13720 +0.05444" size="0.03000 0.00445 0.00300" euler="0.599957 0 0" rgba="0 0 0 0" group="0" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="channel_col_53" type="box" pos="0 +0.14440 +0.05956" size="0.03000 0.00445 0.00300" euler="0.636312 0 0" rgba="0 0 0 0" group="0" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="channel_col_54" type="box" pos="0 +0.15141 +0.06494" size="0.03000 0.00445 0.00300" euler="0.672685 0 0" rgba="0 0 0 0" group="0" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="channel_col_55" type="box" pos="0 +0.15822 +0.07057" size="0.03000 0.00445 0.00300" euler="0.709040 0 0" rgba="0 0 0 0" group="0" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="channel_col_56" type="box" pos="0 +0.16482 +0.07644" size="0.03000 0.00445 0.00300" euler="0.745395 0 0" rgba="0 0 0 0" group="0" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="channel_col_57" type="box" pos="0 +0.17120 +0.08255" size="0.03000 0.00445 0.00300" euler="0.781768 0 0" rgba="0 0 0 0" group="0" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="channel_col_58" type="box" pos="0 +0.17736 +0.08889" size="0.03000 0.00445 0.00300" euler="0.818123 0 0" rgba="0 0 0 0" group="0" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="channel_col_59" type="box" pos="0 +0.18328 +0.09544" size="0.03000 0.00445 0.00300" euler="0.854478 0 0" rgba="0 0 0 0" group="0" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="channel_col_60" type="box" pos="0 +0.18896 +0.10221" size="0.03000 0.00445 0.00300" euler="0.890851 0 0" rgba="0 0 0 0" group="0" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="channel_col_61" type="box" pos="0 +0.19439 +0.10918" size="0.03000 0.00445 0.00300" euler="0.927206 0 0" rgba="0 0 0 0" group="0" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="channel_col_62" type="box" pos="0 +0.19956 +0.11635" size="0.03000 0.00445 0.00300" euler="0.963561 0 0" rgba="0 0 0 0" group="0" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="channel_col_63" type="box" pos="0 +0.20447 +0.12369" size="0.03000 0.00445 0.00300" euler="0.999934 0 0" rgba="0 0 0 0" group="0" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="channel_col_64" type="box" pos="0 +0.20911 +0.13121" size="0.03000 0.00445 0.00300" euler="1.036289 0 0" rgba="0 0 0 0" group="0" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="channel_col_65" type="box" pos="0 +0.21347 +0.13890" size="0.03000 0.00445 0.00300" euler="1.072644 0 0" rgba="0 0 0 0" group="0" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="channel_col_66" type="box" pos="0 +0.21755 +0.14673" size="0.03000 0.00445 0.00300" euler="1.109017 0 0" rgba="0 0 0 0" group="0" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="channel_col_67" type="box" pos="0 +0.22134 +0.15471" size="0.03000 0.00445 0.00300" euler="1.145372 0 0" rgba="0 0 0 0" group="0" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="channel_col_68" type="box" pos="0 +0.22484 +0.16282" size="0.03000 0.00445 0.00300" euler="1.181728 0 0" rgba="0 0 0 0" group="0" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="channel_col_69" type="box" pos="0 +0.22804 +0.17106" size="0.03000 0.00445 0.00300" euler="1.218100 0 0" rgba="0 0 0 0" group="0" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="channel_col_70" type="box" pos="0 +0.23094 +0.17940" size="0.03000 0.00445 0.00300" euler="1.254455 0 0" rgba="0 0 0 0" group="0" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="channel_col_71" type="box" pos="0 +0.23354 +0.18785" size="0.03000 0.00445 0.00300" euler="1.290811 0 0" rgba="0 0 0 0" group="0" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+
+        <!-- === Side rails ===
+             Curved rails along each X edge of the channel, keeping the ball
+             from rolling off the open sides of the trough. 72 segments per
+             rail, frictionless like the channel itself. -->
+        <geom name="rail_pos_x_00" type="box" pos="+0.03200 -0.22201 +0.19117" size="0.00200 0.00445 0.00900" euler="-1.290811 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_pos_x_01" type="box" pos="+0.03200 -0.21954 +0.18314" size="0.00200 0.00445 0.00900" euler="-1.254455 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_pos_x_02" type="box" pos="+0.03200 -0.21678 +0.17520" size="0.00200 0.00445 0.00900" euler="-1.218100 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_pos_x_03" type="box" pos="+0.03200 -0.21374 +0.16738" size="0.00200 0.00445 0.00900" euler="-1.181728 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_pos_x_04" type="box" pos="+0.03200 -0.21041 +0.15966" size="0.00200 0.00445 0.00900" euler="-1.145372 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_pos_x_05" type="box" pos="+0.03200 -0.20680 +0.15208" size="0.00200 0.00445 0.00900" euler="-1.109017 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_pos_x_06" type="box" pos="+0.03200 -0.20293 +0.14463" size="0.00200 0.00445 0.00900" euler="-1.072644 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_pos_x_07" type="box" pos="+0.03200 -0.19878 +0.13732" size="0.00200 0.00445 0.00900" euler="-1.036289 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_pos_x_08" type="box" pos="+0.03200 -0.19437 +0.13018" size="0.00200 0.00445 0.00900" euler="-0.999934 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_pos_x_09" type="box" pos="+0.03200 -0.18970 +0.12319" size="0.00200 0.00445 0.00900" euler="-0.963561 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_pos_x_10" type="box" pos="+0.03200 -0.18479 +0.11638" size="0.00200 0.00445 0.00900" euler="-0.927206 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_pos_x_11" type="box" pos="+0.03200 -0.17963 +0.10976" size="0.00200 0.00445 0.00900" euler="-0.890851 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_pos_x_12" type="box" pos="+0.03200 -0.17423 +0.10332" size="0.00200 0.00445 0.00900" euler="-0.854478 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_pos_x_13" type="box" pos="+0.03200 -0.16860 +0.09709" size="0.00200 0.00445 0.00900" euler="-0.818123 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_pos_x_14" type="box" pos="+0.03200 -0.16275 +0.09107" size="0.00200 0.00445 0.00900" euler="-0.781768 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_pos_x_15" type="box" pos="+0.03200 -0.15668 +0.08526" size="0.00200 0.00445 0.00900" euler="-0.745395 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_pos_x_16" type="box" pos="+0.03200 -0.15041 +0.07967" size="0.00200 0.00445 0.00900" euler="-0.709040 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_pos_x_17" type="box" pos="+0.03200 -0.14393 +0.07432" size="0.00200 0.00445 0.00900" euler="-0.672685 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_pos_x_18" type="box" pos="+0.03200 -0.13727 +0.06921" size="0.00200 0.00445 0.00900" euler="-0.636312 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_pos_x_19" type="box" pos="+0.03200 -0.13042 +0.06434" size="0.00200 0.00445 0.00900" euler="-0.599957 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_pos_x_20" type="box" pos="+0.03200 -0.12341 +0.05973" size="0.00200 0.00445 0.00900" euler="-0.563602 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_pos_x_21" type="box" pos="+0.03200 -0.11623 +0.05537" size="0.00200 0.00445 0.00900" euler="-0.527229 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_pos_x_22" type="box" pos="+0.03200 -0.10889 +0.05128" size="0.00200 0.00445 0.00900" euler="-0.490874 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_pos_x_23" type="box" pos="+0.03200 -0.10141 +0.04745" size="0.00200 0.00445 0.00900" euler="-0.454519 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_pos_x_24" type="box" pos="+0.03200 -0.09380 +0.04390" size="0.00200 0.00445 0.00900" euler="-0.418146 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_pos_x_25" type="box" pos="+0.03200 -0.08607 +0.04063" size="0.00200 0.00445 0.00900" euler="-0.381791 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_pos_x_26" type="box" pos="+0.03200 -0.07822 +0.03765" size="0.00200 0.00445 0.00900" euler="-0.345436 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_pos_x_27" type="box" pos="+0.03200 -0.07026 +0.03495" size="0.00200 0.00445 0.00900" euler="-0.309063 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_pos_x_28" type="box" pos="+0.03200 -0.06222 +0.03254" size="0.00200 0.00445 0.00900" euler="-0.272708 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_pos_x_29" type="box" pos="+0.03200 -0.05409 +0.03042" size="0.00200 0.00445 0.00900" euler="-0.236352 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_pos_x_30" type="box" pos="+0.03200 -0.04589 +0.02860" size="0.00200 0.00445 0.00900" euler="-0.199980 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_pos_x_31" type="box" pos="+0.03200 -0.03763 +0.02709" size="0.00200 0.00445 0.00900" euler="-0.163625 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_pos_x_32" type="box" pos="+0.03200 -0.02932 +0.02587" size="0.00200 0.00445 0.00900" euler="-0.127269 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_pos_x_33" type="box" pos="+0.03200 -0.02097 +0.02495" size="0.00200 0.00445 0.00900" euler="-0.090897 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_pos_x_34" type="box" pos="+0.03200 -0.01259 +0.02434" size="0.00200 0.00445 0.00900" euler="-0.054542 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_pos_x_35" type="box" pos="+0.03200 -0.00420 +0.02404" size="0.00200 0.00445 0.00900" euler="-0.018186 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_pos_x_36" type="box" pos="+0.03200 +0.00420 +0.02404" size="0.00200 0.00445 0.00900" euler="0.018186 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_pos_x_37" type="box" pos="+0.03200 +0.01259 +0.02434" size="0.00200 0.00445 0.00900" euler="0.054542 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_pos_x_38" type="box" pos="+0.03200 +0.02097 +0.02495" size="0.00200 0.00445 0.00900" euler="0.090897 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_pos_x_39" type="box" pos="+0.03200 +0.02932 +0.02587" size="0.00200 0.00445 0.00900" euler="0.127269 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_pos_x_40" type="box" pos="+0.03200 +0.03763 +0.02709" size="0.00200 0.00445 0.00900" euler="0.163625 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_pos_x_41" type="box" pos="+0.03200 +0.04589 +0.02860" size="0.00200 0.00445 0.00900" euler="0.199980 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_pos_x_42" type="box" pos="+0.03200 +0.05409 +0.03042" size="0.00200 0.00445 0.00900" euler="0.236352 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_pos_x_43" type="box" pos="+0.03200 +0.06222 +0.03254" size="0.00200 0.00445 0.00900" euler="0.272708 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_pos_x_44" type="box" pos="+0.03200 +0.07026 +0.03495" size="0.00200 0.00445 0.00900" euler="0.309063 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_pos_x_45" type="box" pos="+0.03200 +0.07822 +0.03765" size="0.00200 0.00445 0.00900" euler="0.345436 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_pos_x_46" type="box" pos="+0.03200 +0.08607 +0.04063" size="0.00200 0.00445 0.00900" euler="0.381791 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_pos_x_47" type="box" pos="+0.03200 +0.09380 +0.04390" size="0.00200 0.00445 0.00900" euler="0.418146 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_pos_x_48" type="box" pos="+0.03200 +0.10141 +0.04745" size="0.00200 0.00445 0.00900" euler="0.454519 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_pos_x_49" type="box" pos="+0.03200 +0.10889 +0.05128" size="0.00200 0.00445 0.00900" euler="0.490874 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_pos_x_50" type="box" pos="+0.03200 +0.11623 +0.05537" size="0.00200 0.00445 0.00900" euler="0.527229 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_pos_x_51" type="box" pos="+0.03200 +0.12341 +0.05973" size="0.00200 0.00445 0.00900" euler="0.563602 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_pos_x_52" type="box" pos="+0.03200 +0.13042 +0.06434" size="0.00200 0.00445 0.00900" euler="0.599957 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_pos_x_53" type="box" pos="+0.03200 +0.13727 +0.06921" size="0.00200 0.00445 0.00900" euler="0.636312 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_pos_x_54" type="box" pos="+0.03200 +0.14393 +0.07432" size="0.00200 0.00445 0.00900" euler="0.672685 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_pos_x_55" type="box" pos="+0.03200 +0.15041 +0.07967" size="0.00200 0.00445 0.00900" euler="0.709040 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_pos_x_56" type="box" pos="+0.03200 +0.15668 +0.08526" size="0.00200 0.00445 0.00900" euler="0.745395 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_pos_x_57" type="box" pos="+0.03200 +0.16275 +0.09107" size="0.00200 0.00445 0.00900" euler="0.781768 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_pos_x_58" type="box" pos="+0.03200 +0.16860 +0.09709" size="0.00200 0.00445 0.00900" euler="0.818123 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_pos_x_59" type="box" pos="+0.03200 +0.17423 +0.10332" size="0.00200 0.00445 0.00900" euler="0.854478 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_pos_x_60" type="box" pos="+0.03200 +0.17963 +0.10976" size="0.00200 0.00445 0.00900" euler="0.890851 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_pos_x_61" type="box" pos="+0.03200 +0.18479 +0.11638" size="0.00200 0.00445 0.00900" euler="0.927206 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_pos_x_62" type="box" pos="+0.03200 +0.18970 +0.12319" size="0.00200 0.00445 0.00900" euler="0.963561 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_pos_x_63" type="box" pos="+0.03200 +0.19437 +0.13018" size="0.00200 0.00445 0.00900" euler="0.999934 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_pos_x_64" type="box" pos="+0.03200 +0.19878 +0.13732" size="0.00200 0.00445 0.00900" euler="1.036289 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_pos_x_65" type="box" pos="+0.03200 +0.20293 +0.14463" size="0.00200 0.00445 0.00900" euler="1.072644 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_pos_x_66" type="box" pos="+0.03200 +0.20680 +0.15208" size="0.00200 0.00445 0.00900" euler="1.109017 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_pos_x_67" type="box" pos="+0.03200 +0.21041 +0.15966" size="0.00200 0.00445 0.00900" euler="1.145372 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_pos_x_68" type="box" pos="+0.03200 +0.21374 +0.16738" size="0.00200 0.00445 0.00900" euler="1.181728 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_pos_x_69" type="box" pos="+0.03200 +0.21678 +0.17520" size="0.00200 0.00445 0.00900" euler="1.218100 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_pos_x_70" type="box" pos="+0.03200 +0.21954 +0.18314" size="0.00200 0.00445 0.00900" euler="1.254455 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_pos_x_71" type="box" pos="+0.03200 +0.22201 +0.19117" size="0.00200 0.00445 0.00900" euler="1.290811 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_neg_x_00" type="box" pos="-0.03200 -0.22201 +0.19117" size="0.00200 0.00445 0.00900" euler="-1.290811 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_neg_x_01" type="box" pos="-0.03200 -0.21954 +0.18314" size="0.00200 0.00445 0.00900" euler="-1.254455 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_neg_x_02" type="box" pos="-0.03200 -0.21678 +0.17520" size="0.00200 0.00445 0.00900" euler="-1.218100 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_neg_x_03" type="box" pos="-0.03200 -0.21374 +0.16738" size="0.00200 0.00445 0.00900" euler="-1.181728 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_neg_x_04" type="box" pos="-0.03200 -0.21041 +0.15966" size="0.00200 0.00445 0.00900" euler="-1.145372 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_neg_x_05" type="box" pos="-0.03200 -0.20680 +0.15208" size="0.00200 0.00445 0.00900" euler="-1.109017 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_neg_x_06" type="box" pos="-0.03200 -0.20293 +0.14463" size="0.00200 0.00445 0.00900" euler="-1.072644 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_neg_x_07" type="box" pos="-0.03200 -0.19878 +0.13732" size="0.00200 0.00445 0.00900" euler="-1.036289 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_neg_x_08" type="box" pos="-0.03200 -0.19437 +0.13018" size="0.00200 0.00445 0.00900" euler="-0.999934 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_neg_x_09" type="box" pos="-0.03200 -0.18970 +0.12319" size="0.00200 0.00445 0.00900" euler="-0.963561 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_neg_x_10" type="box" pos="-0.03200 -0.18479 +0.11638" size="0.00200 0.00445 0.00900" euler="-0.927206 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_neg_x_11" type="box" pos="-0.03200 -0.17963 +0.10976" size="0.00200 0.00445 0.00900" euler="-0.890851 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_neg_x_12" type="box" pos="-0.03200 -0.17423 +0.10332" size="0.00200 0.00445 0.00900" euler="-0.854478 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_neg_x_13" type="box" pos="-0.03200 -0.16860 +0.09709" size="0.00200 0.00445 0.00900" euler="-0.818123 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_neg_x_14" type="box" pos="-0.03200 -0.16275 +0.09107" size="0.00200 0.00445 0.00900" euler="-0.781768 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_neg_x_15" type="box" pos="-0.03200 -0.15668 +0.08526" size="0.00200 0.00445 0.00900" euler="-0.745395 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_neg_x_16" type="box" pos="-0.03200 -0.15041 +0.07967" size="0.00200 0.00445 0.00900" euler="-0.709040 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_neg_x_17" type="box" pos="-0.03200 -0.14393 +0.07432" size="0.00200 0.00445 0.00900" euler="-0.672685 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_neg_x_18" type="box" pos="-0.03200 -0.13727 +0.06921" size="0.00200 0.00445 0.00900" euler="-0.636312 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_neg_x_19" type="box" pos="-0.03200 -0.13042 +0.06434" size="0.00200 0.00445 0.00900" euler="-0.599957 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_neg_x_20" type="box" pos="-0.03200 -0.12341 +0.05973" size="0.00200 0.00445 0.00900" euler="-0.563602 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_neg_x_21" type="box" pos="-0.03200 -0.11623 +0.05537" size="0.00200 0.00445 0.00900" euler="-0.527229 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_neg_x_22" type="box" pos="-0.03200 -0.10889 +0.05128" size="0.00200 0.00445 0.00900" euler="-0.490874 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_neg_x_23" type="box" pos="-0.03200 -0.10141 +0.04745" size="0.00200 0.00445 0.00900" euler="-0.454519 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_neg_x_24" type="box" pos="-0.03200 -0.09380 +0.04390" size="0.00200 0.00445 0.00900" euler="-0.418146 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_neg_x_25" type="box" pos="-0.03200 -0.08607 +0.04063" size="0.00200 0.00445 0.00900" euler="-0.381791 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_neg_x_26" type="box" pos="-0.03200 -0.07822 +0.03765" size="0.00200 0.00445 0.00900" euler="-0.345436 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_neg_x_27" type="box" pos="-0.03200 -0.07026 +0.03495" size="0.00200 0.00445 0.00900" euler="-0.309063 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_neg_x_28" type="box" pos="-0.03200 -0.06222 +0.03254" size="0.00200 0.00445 0.00900" euler="-0.272708 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_neg_x_29" type="box" pos="-0.03200 -0.05409 +0.03042" size="0.00200 0.00445 0.00900" euler="-0.236352 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_neg_x_30" type="box" pos="-0.03200 -0.04589 +0.02860" size="0.00200 0.00445 0.00900" euler="-0.199980 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_neg_x_31" type="box" pos="-0.03200 -0.03763 +0.02709" size="0.00200 0.00445 0.00900" euler="-0.163625 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_neg_x_32" type="box" pos="-0.03200 -0.02932 +0.02587" size="0.00200 0.00445 0.00900" euler="-0.127269 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_neg_x_33" type="box" pos="-0.03200 -0.02097 +0.02495" size="0.00200 0.00445 0.00900" euler="-0.090897 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_neg_x_34" type="box" pos="-0.03200 -0.01259 +0.02434" size="0.00200 0.00445 0.00900" euler="-0.054542 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_neg_x_35" type="box" pos="-0.03200 -0.00420 +0.02404" size="0.00200 0.00445 0.00900" euler="-0.018186 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_neg_x_36" type="box" pos="-0.03200 +0.00420 +0.02404" size="0.00200 0.00445 0.00900" euler="0.018186 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_neg_x_37" type="box" pos="-0.03200 +0.01259 +0.02434" size="0.00200 0.00445 0.00900" euler="0.054542 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_neg_x_38" type="box" pos="-0.03200 +0.02097 +0.02495" size="0.00200 0.00445 0.00900" euler="0.090897 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_neg_x_39" type="box" pos="-0.03200 +0.02932 +0.02587" size="0.00200 0.00445 0.00900" euler="0.127269 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_neg_x_40" type="box" pos="-0.03200 +0.03763 +0.02709" size="0.00200 0.00445 0.00900" euler="0.163625 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_neg_x_41" type="box" pos="-0.03200 +0.04589 +0.02860" size="0.00200 0.00445 0.00900" euler="0.199980 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_neg_x_42" type="box" pos="-0.03200 +0.05409 +0.03042" size="0.00200 0.00445 0.00900" euler="0.236352 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_neg_x_43" type="box" pos="-0.03200 +0.06222 +0.03254" size="0.00200 0.00445 0.00900" euler="0.272708 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_neg_x_44" type="box" pos="-0.03200 +0.07026 +0.03495" size="0.00200 0.00445 0.00900" euler="0.309063 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_neg_x_45" type="box" pos="-0.03200 +0.07822 +0.03765" size="0.00200 0.00445 0.00900" euler="0.345436 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_neg_x_46" type="box" pos="-0.03200 +0.08607 +0.04063" size="0.00200 0.00445 0.00900" euler="0.381791 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_neg_x_47" type="box" pos="-0.03200 +0.09380 +0.04390" size="0.00200 0.00445 0.00900" euler="0.418146 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_neg_x_48" type="box" pos="-0.03200 +0.10141 +0.04745" size="0.00200 0.00445 0.00900" euler="0.454519 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_neg_x_49" type="box" pos="-0.03200 +0.10889 +0.05128" size="0.00200 0.00445 0.00900" euler="0.490874 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_neg_x_50" type="box" pos="-0.03200 +0.11623 +0.05537" size="0.00200 0.00445 0.00900" euler="0.527229 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_neg_x_51" type="box" pos="-0.03200 +0.12341 +0.05973" size="0.00200 0.00445 0.00900" euler="0.563602 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_neg_x_52" type="box" pos="-0.03200 +0.13042 +0.06434" size="0.00200 0.00445 0.00900" euler="0.599957 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_neg_x_53" type="box" pos="-0.03200 +0.13727 +0.06921" size="0.00200 0.00445 0.00900" euler="0.636312 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_neg_x_54" type="box" pos="-0.03200 +0.14393 +0.07432" size="0.00200 0.00445 0.00900" euler="0.672685 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_neg_x_55" type="box" pos="-0.03200 +0.15041 +0.07967" size="0.00200 0.00445 0.00900" euler="0.709040 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_neg_x_56" type="box" pos="-0.03200 +0.15668 +0.08526" size="0.00200 0.00445 0.00900" euler="0.745395 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_neg_x_57" type="box" pos="-0.03200 +0.16275 +0.09107" size="0.00200 0.00445 0.00900" euler="0.781768 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_neg_x_58" type="box" pos="-0.03200 +0.16860 +0.09709" size="0.00200 0.00445 0.00900" euler="0.818123 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_neg_x_59" type="box" pos="-0.03200 +0.17423 +0.10332" size="0.00200 0.00445 0.00900" euler="0.854478 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_neg_x_60" type="box" pos="-0.03200 +0.17963 +0.10976" size="0.00200 0.00445 0.00900" euler="0.890851 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_neg_x_61" type="box" pos="-0.03200 +0.18479 +0.11638" size="0.00200 0.00445 0.00900" euler="0.927206 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_neg_x_62" type="box" pos="-0.03200 +0.18970 +0.12319" size="0.00200 0.00445 0.00900" euler="0.963561 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_neg_x_63" type="box" pos="-0.03200 +0.19437 +0.13018" size="0.00200 0.00445 0.00900" euler="0.999934 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_neg_x_64" type="box" pos="-0.03200 +0.19878 +0.13732" size="0.00200 0.00445 0.00900" euler="1.036289 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_neg_x_65" type="box" pos="-0.03200 +0.20293 +0.14463" size="0.00200 0.00445 0.00900" euler="1.072644 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_neg_x_66" type="box" pos="-0.03200 +0.20680 +0.15208" size="0.00200 0.00445 0.00900" euler="1.109017 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_neg_x_67" type="box" pos="-0.03200 +0.21041 +0.15966" size="0.00200 0.00445 0.00900" euler="1.145372 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_neg_x_68" type="box" pos="-0.03200 +0.21374 +0.16738" size="0.00200 0.00445 0.00900" euler="1.181728 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_neg_x_69" type="box" pos="-0.03200 +0.21678 +0.17520" size="0.00200 0.00445 0.00900" euler="1.218100 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_neg_x_70" type="box" pos="-0.03200 +0.21954 +0.18314" size="0.00200 0.00445 0.00900" euler="1.254455 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+        <geom name="rail_neg_x_71" type="box" pos="-0.03200 +0.22201 +0.19117" size="0.00200 0.00445 0.00900" euler="1.290811 0 0" material="wood_trim" group="1" contype="1" conaffinity="1" friction="0 0 0" solref="0.002 1" solimp="0.99 0.999 0.0001"/>
+
+        <!-- Goal-side cover: the negative-Y (right, from the robot) arm is
+             the only drop opening. 55 mm of radial clearance admits the
+             40 mm ball; roof, side walls and end wall block direct placement.
+             Transparent collision geoms keep the goal and ball visible. -->
+        <geom name="cover_roof_00" type="box" pos="0.000000 -0.018787 0.073972" size="0.037000 0.009392 0.003000" euler="-0.103411 0 0" rgba="0.40 0.65 0.80 0.28" group="1" friction="0 0 0"/>
+        <geom name="cover_side_px_00" type="box" pos="0.034000 -0.021936 0.043635" size="0.003000 0.009392 0.027500" euler="-0.103411 0 0" rgba="0.40 0.65 0.80 0.28" group="1" friction="0 0 0"/>
+        <geom name="cover_side_nx_00" type="box" pos="-0.034000 -0.021936 0.043635" size="0.003000 0.009392 0.027500" euler="-0.103411 0 0" rgba="0.40 0.65 0.80 0.28" group="1" friction="0 0 0"/>
+        <geom name="cover_roof_01" type="box" pos="0.000000 -0.005637 0.073087" size="0.037000 0.009392 0.003000" euler="-0.030980 0 0" rgba="0.40 0.65 0.80 0.28" group="1" friction="0 0 0"/>
+        <geom name="cover_side_px_01" type="box" pos="0.034000 -0.006582 0.042602" size="0.003000 0.009392 0.027500" euler="-0.030980 0 0" rgba="0.40 0.65 0.80 0.28" group="1" friction="0 0 0"/>
+        <geom name="cover_side_nx_01" type="box" pos="-0.034000 -0.006582 0.042602" size="0.003000 0.009392 0.027500" euler="-0.030980 0 0" rgba="0.40 0.65 0.80 0.28" group="1" friction="0 0 0"/>
+        <geom name="cover_roof_02" type="box" pos="0.000000 0.007542 0.073156" size="0.037000 0.009392 0.003000" euler="0.041452 0 0" rgba="0.40 0.65 0.80 0.28" group="1" friction="0 0 0"/>
+        <geom name="cover_side_px_02" type="box" pos="0.034000 0.008806 0.042683" size="0.003000 0.009392 0.027500" euler="0.041452 0 0" rgba="0.40 0.65 0.80 0.28" group="1" friction="0 0 0"/>
+        <geom name="cover_side_nx_02" type="box" pos="-0.034000 0.008806 0.042683" size="0.003000 0.009392 0.027500" euler="0.041452 0 0" rgba="0.40 0.65 0.80 0.28" group="1" friction="0 0 0"/>
+        <geom name="cover_roof_03" type="box" pos="0.000000 0.020682 0.074179" size="0.037000 0.009392 0.003000" euler="0.113883 0 0" rgba="0.40 0.65 0.80 0.28" group="1" friction="0 0 0"/>
+        <geom name="cover_side_px_03" type="box" pos="0.034000 0.024148 0.043876" size="0.003000 0.009392 0.027500" euler="0.113883 0 0" rgba="0.40 0.65 0.80 0.28" group="1" friction="0 0 0"/>
+        <geom name="cover_side_nx_03" type="box" pos="-0.034000 0.024148 0.043876" size="0.003000 0.009392 0.027500" euler="0.113883 0 0" rgba="0.40 0.65 0.80 0.28" group="1" friction="0 0 0"/>
+        <geom name="cover_roof_04" type="box" pos="0.000000 0.033713 0.076150" size="0.037000 0.009392 0.003000" euler="0.186314 0 0" rgba="0.40 0.65 0.80 0.28" group="1" friction="0 0 0"/>
+        <geom name="cover_side_px_04" type="box" pos="0.034000 0.039363 0.046178" size="0.003000 0.009392 0.027500" euler="0.186314 0 0" rgba="0.40 0.65 0.80 0.28" group="1" friction="0 0 0"/>
+        <geom name="cover_side_nx_04" type="box" pos="-0.034000 0.039363 0.046178" size="0.003000 0.009392 0.027500" euler="0.186314 0 0" rgba="0.40 0.65 0.80 0.28" group="1" friction="0 0 0"/>
+        <geom name="cover_roof_05" type="box" pos="0.000000 0.046568 0.079058" size="0.037000 0.009392 0.003000" euler="0.258745 0 0" rgba="0.40 0.65 0.80 0.28" group="1" friction="0 0 0"/>
+        <geom name="cover_side_px_05" type="box" pos="0.034000 0.054372 0.049574" size="0.003000 0.009392 0.027500" euler="0.258745 0 0" rgba="0.40 0.65 0.80 0.28" group="1" friction="0 0 0"/>
+        <geom name="cover_side_nx_05" type="box" pos="-0.034000 0.054372 0.049574" size="0.003000 0.009392 0.027500" euler="0.258745 0 0" rgba="0.40 0.65 0.80 0.28" group="1" friction="0 0 0"/>
+        <geom name="cover_roof_06" type="box" pos="0.000000 0.059178 0.082890" size="0.037000 0.009392 0.003000" euler="0.331176 0 0" rgba="0.40 0.65 0.80 0.28" group="1" friction="0 0 0"/>
+        <geom name="cover_side_px_06" type="box" pos="0.034000 0.069096 0.054047" size="0.003000 0.009392 0.027500" euler="0.331176 0 0" rgba="0.40 0.65 0.80 0.28" group="1" friction="0 0 0"/>
+        <geom name="cover_side_nx_06" type="box" pos="-0.034000 0.069096 0.054047" size="0.003000 0.009392 0.027500" euler="0.331176 0 0" rgba="0.40 0.65 0.80 0.28" group="1" friction="0 0 0"/>
+        <geom name="cover_roof_07" type="box" pos="0.000000 0.071478 0.087624" size="0.037000 0.009392 0.003000" euler="0.403607 0 0" rgba="0.40 0.65 0.80 0.28" group="1" friction="0 0 0"/>
+        <geom name="cover_side_px_07" type="box" pos="0.034000 0.083457 0.059574" size="0.003000 0.009392 0.027500" euler="0.403607 0 0" rgba="0.40 0.65 0.80 0.28" group="1" friction="0 0 0"/>
+        <geom name="cover_side_nx_07" type="box" pos="-0.034000 0.083457 0.059574" size="0.003000 0.009392 0.027500" euler="0.403607 0 0" rgba="0.40 0.65 0.80 0.28" group="1" friction="0 0 0"/>
+        <geom name="cover_roof_08" type="box" pos="0.000000 0.083404 0.093235" size="0.037000 0.009392 0.003000" euler="0.476039 0 0" rgba="0.40 0.65 0.80 0.28" group="1" friction="0 0 0"/>
+        <geom name="cover_side_px_08" type="box" pos="0.034000 0.097381 0.066126" size="0.003000 0.009392 0.027500" euler="0.476039 0 0" rgba="0.40 0.65 0.80 0.28" group="1" friction="0 0 0"/>
+        <geom name="cover_side_nx_08" type="box" pos="-0.034000 0.097381 0.066126" size="0.003000 0.009392 0.027500" euler="0.476039 0 0" rgba="0.40 0.65 0.80 0.28" group="1" friction="0 0 0"/>
+        <geom name="cover_roof_09" type="box" pos="0.000000 0.094892 0.099695" size="0.037000 0.009392 0.003000" euler="0.548470 0 0" rgba="0.40 0.65 0.80 0.28" group="1" friction="0 0 0"/>
+        <geom name="cover_side_px_09" type="box" pos="0.034000 0.110794 0.073669" size="0.003000 0.009392 0.027500" euler="0.548470 0 0" rgba="0.40 0.65 0.80 0.28" group="1" friction="0 0 0"/>
+        <geom name="cover_side_nx_09" type="box" pos="-0.034000 0.110794 0.073669" size="0.003000 0.009392 0.027500" euler="0.548470 0 0" rgba="0.40 0.65 0.80 0.28" group="1" friction="0 0 0"/>
+        <geom name="cover_roof_10" type="box" pos="0.000000 0.105882 0.106969" size="0.037000 0.009392 0.003000" euler="0.620901 0 0" rgba="0.40 0.65 0.80 0.28" group="1" friction="0 0 0"/>
+        <geom name="cover_side_px_10" type="box" pos="0.034000 0.123626 0.082162" size="0.003000 0.009392 0.027500" euler="0.620901 0 0" rgba="0.40 0.65 0.80 0.28" group="1" friction="0 0 0"/>
+        <geom name="cover_side_nx_10" type="box" pos="-0.034000 0.123626 0.082162" size="0.003000 0.009392 0.027500" euler="0.620901 0 0" rgba="0.40 0.65 0.80 0.28" group="1" friction="0 0 0"/>
+        <geom name="cover_roof_11" type="box" pos="0.000000 0.116317 0.115020" size="0.037000 0.009392 0.003000" euler="0.693332 0 0" rgba="0.40 0.65 0.80 0.28" group="1" friction="0 0 0"/>
+        <geom name="cover_side_px_11" type="box" pos="0.034000 0.135809 0.091562" size="0.003000 0.009392 0.027500" euler="0.693332 0 0" rgba="0.40 0.65 0.80 0.28" group="1" friction="0 0 0"/>
+        <geom name="cover_side_nx_11" type="box" pos="-0.034000 0.135809 0.091562" size="0.003000 0.009392 0.027500" euler="0.693332 0 0" rgba="0.40 0.65 0.80 0.28" group="1" friction="0 0 0"/>
+        <geom name="cover_roof_12" type="box" pos="0.000000 0.126142 0.123805" size="0.037000 0.009392 0.003000" euler="0.765763 0 0" rgba="0.40 0.65 0.80 0.28" group="1" friction="0 0 0"/>
+        <geom name="cover_side_px_12" type="box" pos="0.034000 0.147281 0.101819" size="0.003000 0.009392 0.027500" euler="0.765763 0 0" rgba="0.40 0.65 0.80 0.28" group="1" friction="0 0 0"/>
+        <geom name="cover_side_nx_12" type="box" pos="-0.034000 0.147281 0.101819" size="0.003000 0.009392 0.027500" euler="0.765763 0 0" rgba="0.40 0.65 0.80 0.28" group="1" friction="0 0 0"/>
+        <geom name="cover_roof_13" type="box" pos="0.000000 0.135305 0.133277" size="0.037000 0.009392 0.003000" euler="0.838194 0 0" rgba="0.40 0.65 0.80 0.28" group="1" friction="0 0 0"/>
+        <geom name="cover_side_px_13" type="box" pos="0.034000 0.157980 0.112879" size="0.003000 0.009392 0.027500" euler="0.838194 0 0" rgba="0.40 0.65 0.80 0.28" group="1" friction="0 0 0"/>
+        <geom name="cover_side_nx_13" type="box" pos="-0.034000 0.157980 0.112879" size="0.003000 0.009392 0.027500" euler="0.838194 0 0" rgba="0.40 0.65 0.80 0.28" group="1" friction="0 0 0"/>
+        <geom name="cover_roof_14" type="box" pos="0.000000 0.143760 0.143388" size="0.037000 0.009392 0.003000" euler="0.910626 0 0" rgba="0.40 0.65 0.80 0.28" group="1" friction="0 0 0"/>
+        <geom name="cover_side_px_14" type="box" pos="0.034000 0.167851 0.124684" size="0.003000 0.009392 0.027500" euler="0.910626 0 0" rgba="0.40 0.65 0.80 0.28" group="1" friction="0 0 0"/>
+        <geom name="cover_side_nx_14" type="box" pos="-0.034000 0.167851 0.124684" size="0.003000 0.009392 0.027500" euler="0.910626 0 0" rgba="0.40 0.65 0.80 0.28" group="1" friction="0 0 0"/>
+        <geom name="cover_roof_15" type="box" pos="0.000000 0.151460 0.154084" size="0.037000 0.009392 0.003000" euler="0.983057 0 0" rgba="0.40 0.65 0.80 0.28" group="1" friction="0 0 0"/>
+        <geom name="cover_side_px_15" type="box" pos="0.034000 0.176842 0.137173" size="0.003000 0.009392 0.027500" euler="0.983057 0 0" rgba="0.40 0.65 0.80 0.28" group="1" friction="0 0 0"/>
+        <geom name="cover_side_nx_15" type="box" pos="-0.034000 0.176842 0.137173" size="0.003000 0.009392 0.027500" euler="0.983057 0 0" rgba="0.40 0.65 0.80 0.28" group="1" friction="0 0 0"/>
+        <geom name="cover_roof_16" type="box" pos="0.000000 0.158366 0.165310" size="0.037000 0.009392 0.003000" euler="1.055488 0 0" rgba="0.40 0.65 0.80 0.28" group="1" friction="0 0 0"/>
+        <geom name="cover_side_px_16" type="box" pos="0.034000 0.184905 0.150279" size="0.003000 0.009392 0.027500" euler="1.055488 0 0" rgba="0.40 0.65 0.80 0.28" group="1" friction="0 0 0"/>
+        <geom name="cover_side_nx_16" type="box" pos="-0.034000 0.184905 0.150279" size="0.003000 0.009392 0.027500" euler="1.055488 0 0" rgba="0.40 0.65 0.80 0.28" group="1" friction="0 0 0"/>
+        <geom name="cover_roof_17" type="box" pos="0.000000 0.164441 0.177006" size="0.037000 0.009392 0.003000" euler="1.127919 0 0" rgba="0.40 0.65 0.80 0.28" group="1" friction="0 0 0"/>
+        <geom name="cover_side_px_17" type="box" pos="0.034000 0.191999 0.163935" size="0.003000 0.009392 0.027500" euler="1.127919 0 0" rgba="0.40 0.65 0.80 0.28" group="1" friction="0 0 0"/>
+        <geom name="cover_side_nx_17" type="box" pos="-0.034000 0.191999 0.163935" size="0.003000 0.009392 0.027500" euler="1.127919 0 0" rgba="0.40 0.65 0.80 0.28" group="1" friction="0 0 0"/>
+        <geom name="cover_roof_18" type="box" pos="0.000000 0.169654 0.189110" size="0.037000 0.009392 0.003000" euler="1.200350 0 0" rgba="0.40 0.65 0.80 0.28" group="1" friction="0 0 0"/>
+        <geom name="cover_side_px_18" type="box" pos="0.034000 0.198085 0.178068" size="0.003000 0.009392 0.027500" euler="1.200350 0 0" rgba="0.40 0.65 0.80 0.28" group="1" friction="0 0 0"/>
+        <geom name="cover_side_nx_18" type="box" pos="-0.034000 0.198085 0.178068" size="0.003000 0.009392 0.027500" euler="1.200350 0 0" rgba="0.40 0.65 0.80 0.28" group="1" friction="0 0 0"/>
+        <geom name="cover_roof_19" type="box" pos="0.000000 0.173978 0.201561" size="0.037000 0.009392 0.003000" euler="1.272781 0 0" rgba="0.40 0.65 0.80 0.28" group="1" friction="0 0 0"/>
+        <geom name="cover_side_px_19" type="box" pos="0.034000 0.203133 0.192605" size="0.003000 0.009392 0.027500" euler="1.272781 0 0" rgba="0.40 0.65 0.80 0.28" group="1" friction="0 0 0"/>
+        <geom name="cover_side_nx_19" type="box" pos="-0.034000 0.203133 0.192605" size="0.003000 0.009392 0.027500" euler="1.272781 0 0" rgba="0.40 0.65 0.80 0.28" group="1" friction="0 0 0"/>
+        <geom name="cover_end" type="box" pos="0 0.205799 0.202056" size="0.037 0.003 0.0305" euler="1.318997 0 0" rgba="0.40 0.65 0.80 0.28" group="1" friction="0 0 0"/>
+
+        <inertial pos="0 0 0.05" mass="5.0" diaginertia="0.10 0.025 0.10"/>
+      </body>
+
+      <!-- Marker sites required by the ExtrasObject convention. -->
+      <site name="bottom_site" pos="0 0 -0.038" size="0.001" rgba="0 0 0 0"/>
+      <site name="top_site" pos="0 0 0.195" size="0.001" rgba="0 0 0 0"/>
+      <site name="horizontal_radius_site" pos="0.066 0.265 0" size="0.001" rgba="0 0 0 0"/>
+    </body>
+  </worldbody>
+</mujoco>
