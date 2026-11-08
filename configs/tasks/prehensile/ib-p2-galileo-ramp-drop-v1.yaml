@@ -1,0 +1,160 @@
+task_id: ib-p2-galileo-ramp-drop-v1
+description: >-
+  Single arm: a steel ball sits in an open-top container on the table. A
+  symmetric Galileo ramp lies across the table with a green goal region on
+  its covered goal-side arm. Pick the ball up, release it through the open
+  right-side arm (ramp-local -Y), and let it roll freely through the trough
+  to the goal with near-zero velocity on its first swing; a ball that turns
+  around outside the goal fails.
+
+# Long horizon so the ball has time to roll, settle, and be scored.
+max_episode_steps: 600
+# Binary rewards only — no dense shaping.
+reward_type: sparse
+action_mode: cartesian_delta
+# Slow control so the rolling is visible to a human watching the viewer.
+control_freq: 20
+
+# ── Scene geometry ─────────────────────────────────────────────────
+scene:
+  table:
+    # Slightly wider table so ramp + container + goal all fit comfortably.
+    full_size: [0.9, 0.7, 0.05]
+    height: 0.8
+    offset: null
+  robot_offset: null
+
+# Initial placement sampler (read by SingleArmBase); reset() then places
+# every object explicitly.
+placement:
+  x_range: 0.0
+  y_range: 0.0
+  ensure_valid_placement: false
+
+randomization:
+  object_color:
+    enabled: false
+  lighting:
+    position: false
+    color: false
+
+task:
+  ball_radius: 0.02
+  # Goal patch half-extents (metres) in the patch's own frame: x across the
+  # channel, y along the arc. The scorer checks exactly the drawn patch: the
+  # ball's first goal-side turnaround (apex) must lie on it. A calibrated
+  # scripted release lands within 3 mm of the patch centre (100 seeds), so
+  # +/-5 mm along the arc leaves a small margin for a precise policy.
+  goal_patch_half_x: 0.025
+  goal_patch_half_y: 0.005
+  # "Near-zero" speed at that apex (rejects bounces and sideways motion).
+  goal_velocity_threshold: 0.07
+  # Goal is sampled along the far-side arc; theta is angle from the trough
+  # bottom (deg). Lower = closer to the centre (easy, more energy budget);
+  # higher = closer to the endpoint (hard, ball must climb nearly all the way).
+  goal_theta_range_deg: [25.0, 55.0]
+  # Ramp placement relative to table centre (metres). Long axis runs along
+  # world Y so the ball rolls left-right in the robot's view.
+  ramp_offset_x: 0.10
+  ramp_offset_y: 0.0
+  ramp_yaw: 0.0
+  # Container holding the ball at start, placed directly in world frame on
+  # the robot's side of the table (robot is at world -X).
+  container_offset_x: -0.15
+  container_offset_y: -0.05
+  container_half_xy: 0.120
+  container_wall: 0.004
+  container_depth: 0.060
+
+task_conditions:
+  success:
+    score_threshold: 1.0
+  failure:
+    floor_z_threshold: 0.05
+
+recording:
+  save_freq:
+    proprio: 20
+    force_torque: 20
+    object_state: 20
+    cameras: 10
+    tactile: 20
+  save:
+    action: true
+    reward: true
+    task_score: true
+    joint_positions: true
+    ee_poses: true
+
+controller:
+  type: OSC_POSE
+  robot: Panda
+  kp: 200
+  damping_ratio: 1
+  impedance_mode: fixed
+  uncouple_pos_ori: true
+  input_type: delta
+  input_ref_frame: base
+
+obs:
+  proprio:
+    enabled: true
+    keys:
+    - robot0_eef_pos
+    - robot0_eef_quat
+    - robot0_gripper_qpos
+    - robot0_joint_pos
+    - robot0_joint_vel
+    save: true
+  object_state:
+    enabled: true
+    save: true
+  cameras:
+    gripper_cam:
+      enabled: true
+      robosuite_name: robot0_eye_in_hand
+      width: 640
+      height: 480
+      depth: false
+      save: true
+    exo_right_cam:
+      enabled: true
+      robosuite_name: agentview
+      pos: [0.0, -0.9, 1.2]
+      quat: [0.8254, 0.5646, 0.0, 0.0]
+      fovy: 60
+      width: 640
+      height: 480
+      depth: false
+      save: true
+    exo_front_cam:
+      enabled: true
+      robosuite_name: frontview
+      width: 640
+      height: 480
+      depth: false
+      save: true
+    exo_left_cam:
+      enabled: true
+      robosuite_name: sideview
+      pos: [0.0, 0.9, 1.2]
+      quat: [0.0, 0.0, 0.5646, 0.8254]
+      fovy: 60
+      width: 640
+      height: 480
+      depth: false
+      save: true
+  force_torque:
+    enabled: true
+    keys:
+    - robot0_ft_sensor
+    save: true
+  tactile:
+    enabled: true
+    fingers:
+    - right
+    - left
+    rows: 8
+    cols: 8
+    spacing: 0.001
+    save: true

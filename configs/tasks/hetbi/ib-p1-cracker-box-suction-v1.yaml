@@ -1,0 +1,202 @@
+task_id: ib-p1-cracker-box-suction-v1
+description: 'Suction-only variant of the cracker-box slot-insertion task. Both arms are in the scene but the finger-gripper
+  arm (robot 0) is frozen — only the suction-gripper arm (robot 1) is controllable. Suction must pick the box off the table
+  and slide it into the slot on its own.
+
+  '
+max_episode_steps: 2000
+reward_type: sparse
+action_mode: cartesian_delta
+control_freq: 100
+
+# ── Physics ────────────────────────────────────────────────────────
+physics:
+  # Multi-point convex contacts: a flat cylinder or mesh face otherwise
+  # rests on one contact and rocks, creeps or sinks into its support.
+  multiccd: true
+
+# ── Scene ──────────────────────────────────────────────────────────
+scene:
+  table:
+    height: 0.9
+    full_size: [1.0, 0.75, 0.05]
+    offset: null
+  robot_offset: null
+  robot_rotation_z: [-90, 90]
+  object_color: null                   # base payload RGBA; null = use mesh texture
+  table_color: [1.0, 1.0, 1.0, 1.0]   # base table-top RGBA (white)
+
+task_conditions:
+  success:
+    dist_threshold: 0.04
+    lift_height: null                   # inserting into slot, not lifting
+    insert_max_tilt_deg: 20.0         # box long/thin axes vs slot length/opening axes
+  failure:
+    floor_drop_below: 0.05
+
+# ── Domain randomization (re-sampled every reset) ─────────────────
+# Physics axes (mass/friction) apply only with BOTH enabled: true AND a
+# range; ranges use [min, max] uniform sampling.
+randomization:
+  # ── Physics ──
+  payload_mass:                        # payload body mass (kg)
+    enabled: true
+    # range: [0.05, 0.20]
+  payload_friction:                    # payload sliding friction
+    enabled: true
+    # range: [0.2, 0.8]
+  table_friction:                      # table surface sliding friction
+    enabled: true
+    # range: [0.5, 1.5]
+  # ── Placement ──
+  payload_placement:                   # Gaussian jitter on payload start position
+    enabled: true
+    x_std: 0.02                       # std dev in meters for x-axis
+    y_std: 0.02                       # std dev in meters for y-axis
+  # ── Visual ──
+  object_color:                        # randomize payload RGBA each reset
+    enabled: false
+  table_color:                         # randomize table-top RGBA each reset
+    enabled: false
+  lighting:
+    position: true                     # randomize light position each reset
+    color: false                       # randomize light diffuse/ambient color
+  # ── Dynamics ──
+  action_noise:                        # Gaussian noise on commanded actions
+    enabled: false
+    # std: 0.01
+  observation_noise:                   # Gaussian noise on proprio observations
+    enabled: false
+    # std: 0.005
+
+recording:
+  save_freq:
+    proprio: 100
+    force_torque: 50
+    object_state: 50
+    cameras: 25
+    tactile: 50
+  save:
+    action: true
+    reward: true
+    task_score: true
+    joint_positions: true
+    ee_poses: true
+payload: cracker_box
+fixture: slot
+grippers:
+- PandaGripper
+- PandaSuctionGripper
+# Box laid flat on table:  R_y(-90°)  →  local +Z (long, 0.216) → world -X
+#                          local +X (thin, 0.075) → world +Z (top face up)
+#                          local +Y (medium, 0.166) → world +Y
+# Resulting world dims: 0.216 (X) × 0.166 (Y) × 0.075 (Z).
+# Box centre placed at (0.40, 0.20, 0.94) (payload_pos) so the long face faces up — this is
+# the "long side" the suction snout grasps top-down.
+payload_quat:                         # wxyz: R_y(-90°)
+- 0.7071068
+- 0
+- -0.7071068
+- 0
+# Box laid flat at (0.40, 0.20, 0.94): footprint = 0.216 (X) × 0.166 (Y).
+# Slot interior at (0.10, 0.0, 0.97). With placement_random ±0.06 m
+# (3σ), box X-min stays > slot X-max so the two never overlap on the
+# table top.
+payload_pos: [0.40, 0.20, 0.94]
+fixture_quat:
+- 0.7071068
+- 0.7071068
+- 0
+- 0
+# Slot placed in R1's natural reach band on the +Y side. Slot interior centre
+# (= success target) is at (fix_x, fix_y-0.10, fix_z) = (0.10, 0.0, 0.97).
+# Slot rests on the table — the (enlarged) base plate's world Z half-
+# extent is 0.07, so fix_z = 0.97 puts the bottom of the fixture exactly
+# on the table top. Slot footprint X range = fix_x ± 0.145, Y range =
+# (fix_y - 0.22, fix_y), so the laid-flat payload at (0.40, 0.20)
+# never overlaps the slot at (0.10, 0.10).
+fixture_pos: [0.10, 0.10, 0.97]
+controller:
+- type: IK_POSE
+  robot: Panda
+  ik_pos_limit: 1.0
+  ik_ori_limit: 1.0
+  input_type: absolute
+  impedance_mode: fixed
+  kp: 10000
+  damping_ratio: 1
+  kp_limits: [0, 100000]
+- type: IK_POSE
+  robot: Panda
+  ik_pos_limit: 1.0
+  ik_ori_limit: 1.0
+  input_type: absolute
+  impedance_mode: fixed
+  kp: 10000
+  damping_ratio: 1
+  kp_limits: [0, 100000]
+ik_scale:
+  pos_sensitivity: 0.005
+  ori_sensitivity: 0.01
+obs:
+  proprio:
+    enabled: true
+    keys:
+    - robot0_eef_pos
+    - robot0_eef_quat
+    - robot0_gripper_qpos
+    - robot0_joint_pos
+    - robot0_joint_vel
+    - robot1_eef_pos
+    - robot1_eef_quat
+    - robot1_gripper_qpos
+    - robot1_joint_pos
+    - robot1_joint_vel
+    save: true
+  object_state:
+    enabled: true
+    save: true
+  cameras:
+    gripper0_cam:
+      enabled: true
+      robosuite_name: robot0_eye_in_hand
+      width: 640
+      height: 480
+      depth: false
+      save: true
+    gripper1_cam:
+      enabled: true
+      robosuite_name: robot1_eye_in_hand
+      width: 640
+      height: 480
+      depth: false
+      save: true
+    exo_bird_cam:
+      enabled: true
+      robosuite_name: birdview
+      width: 640
+      height: 480
+      depth: false
+      save: true
+    agent_cam:
+      enabled: true
+      robosuite_name: agentview
+      width: 640
+      height: 480
+      depth: false
+      save: true
+  force_torque:
+    enabled: true
+    keys:
+    - robot0_ft_sensor
+    - robot1_ft_sensor
+    save: true
+  tactile:
+    enabled: true
+    fingers:
+    - right
+    - left
+    rows: 8
+    cols: 8
+    spacing: 0.001
+    save: true

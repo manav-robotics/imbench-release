@@ -1,0 +1,360 @@
+<mujoco model="keyboard">
+  <compiler angle="radian"/>
+
+  <asset>
+    <!-- Per-key letter textures (PNG with row-coloured background and dark glyph). -->
+    <texture name="kb_tex_q" type="2d" file="keyboard_letters/q.png"/>
+    <texture name="kb_tex_w" type="2d" file="keyboard_letters/w.png"/>
+    <texture name="kb_tex_e" type="2d" file="keyboard_letters/e.png"/>
+    <texture name="kb_tex_r" type="2d" file="keyboard_letters/r.png"/>
+    <texture name="kb_tex_t" type="2d" file="keyboard_letters/t.png"/>
+    <texture name="kb_tex_y" type="2d" file="keyboard_letters/y.png"/>
+    <texture name="kb_tex_u" type="2d" file="keyboard_letters/u.png"/>
+    <texture name="kb_tex_i" type="2d" file="keyboard_letters/i.png"/>
+    <texture name="kb_tex_o" type="2d" file="keyboard_letters/o.png"/>
+    <texture name="kb_tex_p" type="2d" file="keyboard_letters/p.png"/>
+    <texture name="kb_tex_a" type="2d" file="keyboard_letters/a.png"/>
+    <texture name="kb_tex_s" type="2d" file="keyboard_letters/s.png"/>
+    <texture name="kb_tex_d" type="2d" file="keyboard_letters/d.png"/>
+    <texture name="kb_tex_f" type="2d" file="keyboard_letters/f.png"/>
+    <texture name="kb_tex_g" type="2d" file="keyboard_letters/g.png"/>
+    <texture name="kb_tex_h" type="2d" file="keyboard_letters/h.png"/>
+    <texture name="kb_tex_j" type="2d" file="keyboard_letters/j.png"/>
+    <texture name="kb_tex_k" type="2d" file="keyboard_letters/k.png"/>
+    <texture name="kb_tex_l" type="2d" file="keyboard_letters/l.png"/>
+    <texture name="kb_tex_z" type="2d" file="keyboard_letters/z.png"/>
+    <texture name="kb_tex_x" type="2d" file="keyboard_letters/x.png"/>
+    <texture name="kb_tex_c" type="2d" file="keyboard_letters/c.png"/>
+    <texture name="kb_tex_v" type="2d" file="keyboard_letters/v.png"/>
+    <texture name="kb_tex_b" type="2d" file="keyboard_letters/b.png"/>
+    <texture name="kb_tex_n" type="2d" file="keyboard_letters/n.png"/>
+    <texture name="kb_tex_m" type="2d" file="keyboard_letters/m.png"/>
+
+    <material name="kb_mat_q" texture="kb_tex_q" specular="0" shininess="0"/>
+    <material name="kb_mat_w" texture="kb_tex_w" specular="0" shininess="0"/>
+    <material name="kb_mat_e" texture="kb_tex_e" specular="0" shininess="0"/>
+    <material name="kb_mat_r" texture="kb_tex_r" specular="0" shininess="0"/>
+    <material name="kb_mat_t" texture="kb_tex_t" specular="0" shininess="0"/>
+    <material name="kb_mat_y" texture="kb_tex_y" specular="0" shininess="0"/>
+    <material name="kb_mat_u" texture="kb_tex_u" specular="0" shininess="0"/>
+    <material name="kb_mat_i" texture="kb_tex_i" specular="0" shininess="0"/>
+    <material name="kb_mat_o" texture="kb_tex_o" specular="0" shininess="0"/>
+    <material name="kb_mat_p" texture="kb_tex_p" specular="0" shininess="0"/>
+    <material name="kb_mat_a" texture="kb_tex_a" specular="0" shininess="0"/>
+    <material name="kb_mat_s" texture="kb_tex_s" specular="0" shininess="0"/>
+    <material name="kb_mat_d" texture="kb_tex_d" specular="0" shininess="0"/>
+    <material name="kb_mat_f" texture="kb_tex_f" specular="0" shininess="0"/>
+    <material name="kb_mat_g" texture="kb_tex_g" specular="0" shininess="0"/>
+    <material name="kb_mat_h" texture="kb_tex_h" specular="0" shininess="0"/>
+    <material name="kb_mat_j" texture="kb_tex_j" specular="0" shininess="0"/>
+    <material name="kb_mat_k" texture="kb_tex_k" specular="0" shininess="0"/>
+    <material name="kb_mat_l" texture="kb_tex_l" specular="0" shininess="0"/>
+    <material name="kb_mat_z" texture="kb_tex_z" specular="0" shininess="0"/>
+    <material name="kb_mat_x" texture="kb_tex_x" specular="0" shininess="0"/>
+    <material name="kb_mat_c" texture="kb_tex_c" specular="0" shininess="0"/>
+    <material name="kb_mat_v" texture="kb_tex_v" specular="0" shininess="0"/>
+    <material name="kb_mat_b" texture="kb_tex_b" specular="0" shininess="0"/>
+    <material name="kb_mat_n" texture="kb_tex_n" specular="0" shininess="0"/>
+    <material name="kb_mat_m" texture="kb_tex_m" specular="0" shininess="0"/>
+  </asset>
+
+  <worldbody>
+    <body>
+      <body name="object" pos="0 0 0">
+        <!--
+          Virtual QWERTY keyboard, large enough for robot manipulation.
+          Board: 420 mm wide x 160 mm deep x 8 mm thick (extends past every
+          key with ~1 cm margin so keys never overhang the base plate).
+          26 keys (3.5 cm x 3.5 cm each, 1.6 cm tall), 4 cm spacing.
+          Rows: QWERTYUIOP / ASDFGHJKL / ZXCVBNM
+          Key top surface at z = 0.024 (board top 0.008 + key height 0.016).
+          Each key has a thin label overlay (group=1, no collision) at
+          z = 0.0241 carrying the letter texture so the glyph is visible
+          on the top face without affecting press-detection geometry.
+          The keyboard is placed so that the board bottom sits on the table.
+          No joints — static fixture.
+        -->
+
+        <!-- ── Keyboard base board ─────────────────────────── -->
+        <geom name="board_v" type="box" size="0.2100 0.0800 0.004"
+              pos="0 0 0.004" rgba="0.20 0.20 0.25 1"
+              group="1" contype="0" conaffinity="0"/>
+        <geom name="board" type="box" size="0.2100 0.0800 0.004"
+              pos="0 0 0.004" rgba="0.20 0.20 0.25 1"
+              group="0"/>
+
+        <!-- ── Row 0: Q W E R T Y U I O P (y = +0.045) ─────── -->
+        <!-- Key Q -->
+        <geom name="key_q_v" type="box" size="0.0175 0.0175 0.008"
+              pos="-0.1800 0.0450 0.0160" rgba="0.88 0.88 0.80 1"
+              group="1" contype="0" conaffinity="0"/>
+        <geom name="key_q" type="box" size="0.0175 0.0175 0.008"
+              pos="-0.1800 0.0450 0.0160" rgba="0.88 0.88 0.80 1"
+              group="0"/>
+        <geom name="key_q_label" type="plane" size="0.0170 0.0170  0.001"
+              pos="-0.1800 0.0450 0.02411" material="kb_mat_q"
+              group="1" contype="0" conaffinity="0"/>
+        <!-- Key W -->
+        <geom name="key_w_v" type="box" size="0.0175 0.0175 0.008"
+              pos="-0.1400 0.0450 0.0160" rgba="0.88 0.88 0.80 1"
+              group="1" contype="0" conaffinity="0"/>
+        <geom name="key_w" type="box" size="0.0175 0.0175 0.008"
+              pos="-0.1400 0.0450 0.0160" rgba="0.88 0.88 0.80 1"
+              group="0"/>
+        <geom name="key_w_label" type="plane" size="0.0170 0.0170  0.001"
+              pos="-0.1400 0.0450 0.02411" material="kb_mat_w"
+              group="1" contype="0" conaffinity="0"/>
+        <!-- Key E -->
+        <geom name="key_e_v" type="box" size="0.0175 0.0175 0.008"
+              pos="-0.1000 0.0450 0.0160" rgba="0.88 0.88 0.80 1"
+              group="1" contype="0" conaffinity="0"/>
+        <geom name="key_e" type="box" size="0.0175 0.0175 0.008"
+              pos="-0.1000 0.0450 0.0160" rgba="0.88 0.88 0.80 1"
+              group="0"/>
+        <geom name="key_e_label" type="plane" size="0.0170 0.0170  0.001"
+              pos="-0.1000 0.0450 0.02411" material="kb_mat_e"
+              group="1" contype="0" conaffinity="0"/>
+        <!-- Key R -->
+        <geom name="key_r_v" type="box" size="0.0175 0.0175 0.008"
+              pos="-0.0600 0.0450 0.0160" rgba="0.88 0.88 0.80 1"
+              group="1" contype="0" conaffinity="0"/>
+        <geom name="key_r" type="box" size="0.0175 0.0175 0.008"
+              pos="-0.0600 0.0450 0.0160" rgba="0.88 0.88 0.80 1"
+              group="0"/>
+        <geom name="key_r_label" type="plane" size="0.0170 0.0170  0.001"
+              pos="-0.0600 0.0450 0.02411" material="kb_mat_r"
+              group="1" contype="0" conaffinity="0"/>
+        <!-- Key T -->
+        <geom name="key_t_v" type="box" size="0.0175 0.0175 0.008"
+              pos="-0.0200 0.0450 0.0160" rgba="0.88 0.88 0.80 1"
+              group="1" contype="0" conaffinity="0"/>
+        <geom name="key_t" type="box" size="0.0175 0.0175 0.008"
+              pos="-0.0200 0.0450 0.0160" rgba="0.88 0.88 0.80 1"
+              group="0"/>
+        <geom name="key_t_label" type="plane" size="0.0170 0.0170  0.001"
+              pos="-0.0200 0.0450 0.02411" material="kb_mat_t"
+              group="1" contype="0" conaffinity="0"/>
+        <!-- Key Y -->
+        <geom name="key_y_v" type="box" size="0.0175 0.0175 0.008"
+              pos="0.0200 0.0450 0.0160" rgba="0.88 0.88 0.80 1"
+              group="1" contype="0" conaffinity="0"/>
+        <geom name="key_y" type="box" size="0.0175 0.0175 0.008"
+              pos="0.0200 0.0450 0.0160" rgba="0.88 0.88 0.80 1"
+              group="0"/>
+        <geom name="key_y_label" type="plane" size="0.0170 0.0170  0.001"
+              pos="0.0200 0.0450 0.02411" material="kb_mat_y"
+              group="1" contype="0" conaffinity="0"/>
+        <!-- Key U -->
+        <geom name="key_u_v" type="box" size="0.0175 0.0175 0.008"
+              pos="0.0600 0.0450 0.0160" rgba="0.88 0.88 0.80 1"
+              group="1" contype="0" conaffinity="0"/>
+        <geom name="key_u" type="box" size="0.0175 0.0175 0.008"
+              pos="0.0600 0.0450 0.0160" rgba="0.88 0.88 0.80 1"
+              group="0"/>
+        <geom name="key_u_label" type="plane" size="0.0170 0.0170  0.001"
+              pos="0.0600 0.0450 0.02411" material="kb_mat_u"
+              group="1" contype="0" conaffinity="0"/>
+        <!-- Key I -->
+        <geom name="key_i_v" type="box" size="0.0175 0.0175 0.008"
+              pos="0.1000 0.0450 0.0160" rgba="0.88 0.88 0.80 1"
+              group="1" contype="0" conaffinity="0"/>
+        <geom name="key_i" type="box" size="0.0175 0.0175 0.008"
+              pos="0.1000 0.0450 0.0160" rgba="0.88 0.88 0.80 1"
+              group="0"/>
+        <geom name="key_i_label" type="plane" size="0.0170 0.0170  0.001"
+              pos="0.1000 0.0450 0.02411" material="kb_mat_i"
+              group="1" contype="0" conaffinity="0"/>
+        <!-- Key O -->
+        <geom name="key_o_v" type="box" size="0.0175 0.0175 0.008"
+              pos="0.1400 0.0450 0.0160" rgba="0.88 0.88 0.80 1"
+              group="1" contype="0" conaffinity="0"/>
+        <geom name="key_o" type="box" size="0.0175 0.0175 0.008"
+              pos="0.1400 0.0450 0.0160" rgba="0.88 0.88 0.80 1"
+              group="0"/>
+        <geom name="key_o_label" type="plane" size="0.0170 0.0170  0.001"
+              pos="0.1400 0.0450 0.02411" material="kb_mat_o"
+              group="1" contype="0" conaffinity="0"/>
+        <!-- Key P -->
+        <geom name="key_p_v" type="box" size="0.0175 0.0175 0.008"
+              pos="0.1800 0.0450 0.0160" rgba="0.88 0.88 0.80 1"
+              group="1" contype="0" conaffinity="0"/>
+        <geom name="key_p" type="box" size="0.0175 0.0175 0.008"
+              pos="0.1800 0.0450 0.0160" rgba="0.88 0.88 0.80 1"
+              group="0"/>
+        <geom name="key_p_label" type="plane" size="0.0170 0.0170  0.001"
+              pos="0.1800 0.0450 0.02411" material="kb_mat_p"
+              group="1" contype="0" conaffinity="0"/>
+
+        <!-- ── Row 1: A S D F G H J K L (y = 0.000) ─────────── -->
+        <!-- Key A -->
+        <geom name="key_a_v" type="box" size="0.0175 0.0175 0.008"
+              pos="-0.1400 0.0000 0.0160" rgba="0.85 0.85 0.78 1"
+              group="1" contype="0" conaffinity="0"/>
+        <geom name="key_a" type="box" size="0.0175 0.0175 0.008"
+              pos="-0.1400 0.0000 0.0160" rgba="0.85 0.85 0.78 1"
+              group="0"/>
+        <geom name="key_a_label" type="plane" size="0.0170 0.0170  0.001"
+              pos="-0.1400 0.0000 0.02411" material="kb_mat_a"
+              group="1" contype="0" conaffinity="0"/>
+        <!-- Key S -->
+        <geom name="key_s_v" type="box" size="0.0175 0.0175 0.008"
+              pos="-0.1000 0.0000 0.0160" rgba="0.85 0.85 0.78 1"
+              group="1" contype="0" conaffinity="0"/>
+        <geom name="key_s" type="box" size="0.0175 0.0175 0.008"
+              pos="-0.1000 0.0000 0.0160" rgba="0.85 0.85 0.78 1"
+              group="0"/>
+        <geom name="key_s_label" type="plane" size="0.0170 0.0170  0.001"
+              pos="-0.1000 0.0000 0.02411" material="kb_mat_s"
+              group="1" contype="0" conaffinity="0"/>
+        <!-- Key D -->
+        <geom name="key_d_v" type="box" size="0.0175 0.0175 0.008"
+              pos="-0.0600 0.0000 0.0160" rgba="0.85 0.85 0.78 1"
+              group="1" contype="0" conaffinity="0"/>
+        <geom name="key_d" type="box" size="0.0175 0.0175 0.008"
+              pos="-0.0600 0.0000 0.0160" rgba="0.85 0.85 0.78 1"
+              group="0"/>
+        <geom name="key_d_label" type="plane" size="0.0170 0.0170  0.001"
+              pos="-0.0600 0.0000 0.02411" material="kb_mat_d"
+              group="1" contype="0" conaffinity="0"/>
+        <!-- Key F -->
+        <geom name="key_f_v" type="box" size="0.0175 0.0175 0.008"
+              pos="-0.0200 0.0000 0.0160" rgba="0.85 0.85 0.78 1"
+              group="1" contype="0" conaffinity="0"/>
+        <geom name="key_f" type="box" size="0.0175 0.0175 0.008"
+              pos="-0.0200 0.0000 0.0160" rgba="0.85 0.85 0.78 1"
+              group="0"/>
+        <geom name="key_f_label" type="plane" size="0.0170 0.0170  0.001"
+              pos="-0.0200 0.0000 0.02411" material="kb_mat_f"
+              group="1" contype="0" conaffinity="0"/>
+        <!-- Key G -->
+        <geom name="key_g_v" type="box" size="0.0175 0.0175 0.008"
+              pos="0.0200 0.0000 0.0160" rgba="0.85 0.85 0.78 1"
+              group="1" contype="0" conaffinity="0"/>
+        <geom name="key_g" type="box" size="0.0175 0.0175 0.008"
+              pos="0.0200 0.0000 0.0160" rgba="0.85 0.85 0.78 1"
+              group="0"/>
+        <geom name="key_g_label" type="plane" size="0.0170 0.0170  0.001"
+              pos="0.0200 0.0000 0.02411" material="kb_mat_g"
+              group="1" contype="0" conaffinity="0"/>
+        <!-- Key H -->
+        <geom name="key_h_v" type="box" size="0.0175 0.0175 0.008"
+              pos="0.0600 0.0000 0.0160" rgba="0.85 0.85 0.78 1"
+              group="1" contype="0" conaffinity="0"/>
+        <geom name="key_h" type="box" size="0.0175 0.0175 0.008"
+              pos="0.0600 0.0000 0.0160" rgba="0.85 0.85 0.78 1"
+              group="0"/>
+        <geom name="key_h_label" type="plane" size="0.0170 0.0170  0.001"
+              pos="0.0600 0.0000 0.02411" material="kb_mat_h"
+              group="1" contype="0" conaffinity="0"/>
+        <!-- Key J -->
+        <geom name="key_j_v" type="box" size="0.0175 0.0175 0.008"
+              pos="0.1000 0.0000 0.0160" rgba="0.85 0.85 0.78 1"
+              group="1" contype="0" conaffinity="0"/>
+        <geom name="key_j" type="box" size="0.0175 0.0175 0.008"
+              pos="0.1000 0.0000 0.0160" rgba="0.85 0.85 0.78 1"
+              group="0"/>
+        <geom name="key_j_label" type="plane" size="0.0170 0.0170  0.001"
+              pos="0.1000 0.0000 0.02411" material="kb_mat_j"
+              group="1" contype="0" conaffinity="0"/>
+        <!-- Key K -->
+        <geom name="key_k_v" type="box" size="0.0175 0.0175 0.008"
+              pos="0.1400 0.0000 0.0160" rgba="0.85 0.85 0.78 1"
+              group="1" contype="0" conaffinity="0"/>
+        <geom name="key_k" type="box" size="0.0175 0.0175 0.008"
+              pos="0.1400 0.0000 0.0160" rgba="0.85 0.85 0.78 1"
+              group="0"/>
+        <geom name="key_k_label" type="plane" size="0.0170 0.0170  0.001"
+              pos="0.1400 0.0000 0.02411" material="kb_mat_k"
+              group="1" contype="0" conaffinity="0"/>
+        <!-- Key L -->
+        <geom name="key_l_v" type="box" size="0.0175 0.0175 0.008"
+              pos="0.1800 0.0000 0.0160" rgba="0.85 0.85 0.78 1"
+              group="1" contype="0" conaffinity="0"/>
+        <geom name="key_l" type="box" size="0.0175 0.0175 0.008"
+              pos="0.1800 0.0000 0.0160" rgba="0.85 0.85 0.78 1"
+              group="0"/>
+        <geom name="key_l_label" type="plane" size="0.0170 0.0170  0.001"
+              pos="0.1800 0.0000 0.02411" material="kb_mat_l"
+              group="1" contype="0" conaffinity="0"/>
+
+        <!-- ── Row 2: Z X C V B N M (y = -0.045) ─────────────── -->
+        <!-- Key Z -->
+        <geom name="key_z_v" type="box" size="0.0175 0.0175 0.008"
+              pos="-0.0800 -0.0450 0.0160" rgba="0.82 0.82 0.75 1"
+              group="1" contype="0" conaffinity="0"/>
+        <geom name="key_z" type="box" size="0.0175 0.0175 0.008"
+              pos="-0.0800 -0.0450 0.0160" rgba="0.82 0.82 0.75 1"
+              group="0"/>
+        <geom name="key_z_label" type="plane" size="0.0170 0.0170  0.001"
+              pos="-0.0800 -0.0450 0.02411" material="kb_mat_z"
+              group="1" contype="0" conaffinity="0"/>
+        <!-- Key X -->
+        <geom name="key_x_v" type="box" size="0.0175 0.0175 0.008"
+              pos="-0.0400 -0.0450 0.0160" rgba="0.82 0.82 0.75 1"
+              group="1" contype="0" conaffinity="0"/>
+        <geom name="key_x" type="box" size="0.0175 0.0175 0.008"
+              pos="-0.0400 -0.0450 0.0160" rgba="0.82 0.82 0.75 1"
+              group="0"/>
+        <geom name="key_x_label" type="plane" size="0.0170 0.0170  0.001"
+              pos="-0.0400 -0.0450 0.02411" material="kb_mat_x"
+              group="1" contype="0" conaffinity="0"/>
+        <!-- Key C -->
+        <geom name="key_c_v" type="box" size="0.0175 0.0175 0.008"
+              pos="0.0000 -0.0450 0.0160" rgba="0.82 0.82 0.75 1"
+              group="1" contype="0" conaffinity="0"/>
+        <geom name="key_c" type="box" size="0.0175 0.0175 0.008"
+              pos="0.0000 -0.0450 0.0160" rgba="0.82 0.82 0.75 1"
+              group="0"/>
+        <geom name="key_c_label" type="plane" size="0.0170 0.0170  0.001"
+              pos="0.0000 -0.0450 0.02411" material="kb_mat_c"
+              group="1" contype="0" conaffinity="0"/>
+        <!-- Key V -->
+        <geom name="key_v_v" type="box" size="0.0175 0.0175 0.008"
+              pos="0.0400 -0.0450 0.0160" rgba="0.82 0.82 0.75 1"
+              group="1" contype="0" conaffinity="0"/>
+        <geom name="key_v" type="box" size="0.0175 0.0175 0.008"
+              pos="0.0400 -0.0450 0.0160" rgba="0.82 0.82 0.75 1"
+              group="0"/>
+        <geom name="key_v_label" type="plane" size="0.0170 0.0170  0.001"
+              pos="0.0400 -0.0450 0.02411" material="kb_mat_v"
+              group="1" contype="0" conaffinity="0"/>
+        <!-- Key B -->
+        <geom name="key_b_v" type="box" size="0.0175 0.0175 0.008"
+              pos="0.0800 -0.0450 0.0160" rgba="0.82 0.82 0.75 1"
+              group="1" contype="0" conaffinity="0"/>
+        <geom name="key_b" type="box" size="0.0175 0.0175 0.008"
+              pos="0.0800 -0.0450 0.0160" rgba="0.82 0.82 0.75 1"
+              group="0"/>
+        <geom name="key_b_label" type="plane" size="0.0170 0.0170  0.001"
+              pos="0.0800 -0.0450 0.02411" material="kb_mat_b"
+              group="1" contype="0" conaffinity="0"/>
+        <!-- Key N -->
+        <geom name="key_n_v" type="box" size="0.0175 0.0175 0.008"
+              pos="0.1200 -0.0450 0.0160" rgba="0.82 0.82 0.75 1"
+              group="1" contype="0" conaffinity="0"/>
+        <geom name="key_n" type="box" size="0.0175 0.0175 0.008"
+              pos="0.1200 -0.0450 0.0160" rgba="0.82 0.82 0.75 1"
+              group="0"/>
+        <geom name="key_n_label" type="plane" size="0.0170 0.0170  0.001"
+              pos="0.1200 -0.0450 0.02411" material="kb_mat_n"
+              group="1" contype="0" conaffinity="0"/>
+        <!-- Key M -->
+        <geom name="key_m_v" type="box" size="0.0175 0.0175 0.008"
+              pos="0.1600 -0.0450 0.0160" rgba="0.82 0.82 0.75 1"
+              group="1" contype="0" conaffinity="0"/>
+        <geom name="key_m" type="box" size="0.0175 0.0175 0.008"
+              pos="0.1600 -0.0450 0.0160" rgba="0.82 0.82 0.75 1"
+              group="0"/>
+        <geom name="key_m_label" type="plane" size="0.0170 0.0170  0.001"
+              pos="0.1600 -0.0450 0.02411" material="kb_mat_m"
+              group="1" contype="0" conaffinity="0"/>
+
+        <inertial pos="0 0 0.012" mass="2.0" diaginertia="0.02 0.02 0.02"/>
+      </body>
+      <!-- Bounding sites for robosuite object placement -->
+      <site rgba="0 0 0 0" size="0.005" pos="0 0 0" name="bottom_site"/>
+      <site rgba="0 0 0 0" size="0.005" pos="0 0 0.024" name="top_site"/>
+      <site rgba="0 0 0 0" size="0.005" pos="0.2100 0.0800 0" name="horizontal_radius_site"/>
+    </body>
+  </worldbody>
+</mujoco>

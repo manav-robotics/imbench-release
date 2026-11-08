@@ -1,0 +1,121 @@
+task_id: ib-p2-bounce-intercept-v1
+description: >-
+  Single arm: intercept and grasp a sphere bouncing off walls on the
+  table, predicting its trajectory after rebounds.
+max_episode_steps: 10000
+reward_type: sparse
+action_mode: cartesian_delta
+control_freq: 100
+
+# ── Scene geometry ─────────────────────────────────────────────────
+scene:
+  table:
+    full_size: [0.7, 0.6, 0.05]
+    height: 0.8
+    offset: null
+  robot_offset: null
+
+# Initial placement sampler (read by SingleArmBase); reset() then places
+# every object explicitly.
+placement:
+  center: null
+  x_range: 0.12
+  y_range: 0.12
+
+# ── Domain randomization (re-sampled every reset) ─────────────────
+randomization:
+  object_color:
+    enabled: true
+  lighting:
+    position: true
+    color: false
+
+# ── Task-specific parameters ───────────────────────────────────────
+task:
+  speed_range: [0.6, 1.2]
+  object_radius: 0.02
+  # Wall contact damping is 1 - this, averaged with the ball's: 0.9 gives a
+  # measured rebound of about 0.37 of the impact speed, not 0.9.
+  wall_restitution: 0.9
+  wall_size: [0.01, 0.20, 0.04]   # half-extents; y is unused (walls span the table edge)
+  hold_steps: 30
+
+task_conditions:
+  success:
+    score_threshold: 1.0
+  failure:
+    floor_z_threshold: 0.05
+
+recording:
+  save_freq:
+    proprio: 100
+    force_torque: 50
+    object_state: 50
+    cameras: 25
+    tactile: 50
+  save:
+    action: true
+    reward: true
+    task_score: true
+    joint_positions: true
+    ee_poses: true
+
+controller:
+  type: OSC_POSE
+  robot: Panda
+  kp: 200
+  damping_ratio: 1
+  impedance_mode: fixed
+  uncouple_pos_ori: true
+  input_type: delta
+  input_ref_frame: base
+
+obs:
+  proprio:
+    enabled: true
+    keys:
+    - robot0_eef_pos
+    - robot0_eef_quat
+    - robot0_gripper_qpos
+    - robot0_joint_pos
+    - robot0_joint_vel
+    save: true
+  object_state:
+    enabled: true
+    save: true
+  cameras:
+    gripper_cam:
+      enabled: true
+      robosuite_name: robot0_eye_in_hand
+      width: 640
+      height: 480
+      depth: false
+      save: true
+    exo_front_cam:
+      enabled: true
+      robosuite_name: frontview
+      width: 640
+      height: 480
+      depth: false
+      save: true
+    exo_bird_cam:
+      enabled: true
+      robosuite_name: birdview
+      width: 640
+      height: 480
+      depth: false
+      save: true
+  force_torque:
+    enabled: true
+    keys:
+    - robot0_ft_sensor
+    save: true
+  tactile:
+    enabled: true
+    fingers:
+    - right
+    - left
+    rows: 8
+    cols: 8
+    spacing: 0.001
+    save: true

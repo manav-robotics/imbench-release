@@ -1,0 +1,152 @@
+task_id: ib-p7-balance-medium-v2
+description: >-
+  Single arm: balance an elongated rod vertically on a narrow perpendicular
+  base. Tactile feedback is critical for detecting tilt and making
+  micro-corrections. The rod must remain balanced for a sustained duration.
+max_episode_steps: 2500
+reward_type: sparse
+action_mode: cartesian_delta
+control_freq: 100
+
+# ── Scene geometry ─────────────────────────────────────────────────
+scene:
+  table:
+    full_size: [0.7, 0.5, 0.05]
+    height: 0.8
+    offset: null
+  robot_offset: null
+
+# Initial placement sampler (read by SingleArmBase); reset() then places
+# every object explicitly.
+placement:
+  center: null
+  x_range: 0.20
+  y_range: 0.15
+  ensure_valid_placement: false
+
+# ── Domain randomization (re-sampled every reset) ─────────────────
+randomization:
+  lighting:
+    position: true
+    color: false
+  rod:
+    mass_range: [0.03, 0.08]
+    # Absolute sampling bounds on the table (table center frame, meters).
+    # Table is 0.7 × 0.5, so usable XY is roughly ±0.30 × ±0.20 after a
+    # small safety margin from the edges. Range spans both sides of the
+    # wedge so the rod can spawn in front of, beside, or behind it.
+    x_range: [-0.20, 0.20]
+    y_range: [-0.18, 0.18]
+  platform:
+    x_range: [-0.10, 0.22]
+    y_range: [-0.10, 0.10]
+
+# ── Task-specific parameters ───────────────────────────────────────
+task:
+  rod_radius: 0.008
+  rod_half_length: 0.12
+  rod_mass: 0.05
+  rod_friction: [1.0, 0.1, 0.01]
+  ridge_half_length: 0.06
+  # Half of the ridge's short dimension (full width = 2× this, in m).
+  # Wider ridge = easier balancing. Was 0.003 (6 mm); try 0.015–0.025
+  # if you want more forgiving behaviour.
+  ridge_half_width: 0.006
+  ridge_height: 0.02
+  base_half_size: [0.04, 0.04, 0.005]
+  platform_friction: [1.0, 0.005, 0.0001]
+  tilt_threshold_deg: 10.0
+  balance_hold_steps: 100
+
+task_conditions:
+  success:
+    score_threshold: 1.0
+  failure:
+    floor_z_threshold: 0.05
+
+recording:
+  save_freq:
+    proprio: 100
+    force_torque: 50
+    object_state: 50
+    cameras: 25
+    tactile: 50
+  save:
+    action: true
+    reward: true
+    task_score: true
+    joint_positions: true
+    ee_poses: true
+
+controller:
+  type: OSC_POSE
+  robot: Panda
+  kp: 200
+  damping_ratio: 1
+  impedance_mode: fixed
+  uncouple_pos_ori: true
+  input_type: delta
+  input_ref_frame: base
+
+obs:
+  proprio:
+    enabled: true
+    keys:
+    - robot0_eef_pos
+    - robot0_eef_quat
+    - robot0_gripper_qpos
+    - robot0_joint_pos
+    - robot0_joint_vel
+    save: true
+  object_state:
+    enabled: true
+    save: true
+  cameras:
+    gripper_cam:
+      enabled: true
+      robosuite_name: robot0_eye_in_hand
+      width: 640
+      height: 480
+      depth: false
+      save: true
+    ego_cam:
+      enabled: true
+      robosuite_name: robot0_robotview
+      width: 640
+      height: 480
+      depth: false
+      save: true
+    exo_right_cam:
+      enabled: true
+      robosuite_name: agentview
+      pos: [0.0, -0.9, 1.2]
+      quat: [0.8254, 0.5646, 0.0, 0.0]
+      fovy: 60
+      width: 640
+      height: 480
+      depth: false
+      save: true
+    exo_left_cam:
+      enabled: true
+      robosuite_name: sideview
+      pos: [0.0, 0.9, 1.2]
+      quat: [0.0, 0.0, 0.5646, 0.8254]
+      fovy: 60
+      width: 640
+      height: 480
+      depth: false
+      save: true
+  force_torque:
+    enabled: true
+    keys:
+    - robot0_ft_sensor
+    save: true
+  tactile:
+    enabled: true
+    fingers:
+    - right
+    - left
+    rows: 8
+    cols: 8
+    spacing: 0.001
+    save: true

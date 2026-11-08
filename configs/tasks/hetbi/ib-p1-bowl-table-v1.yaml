@@ -1,0 +1,190 @@
+task_id: ib-p1-bowl-table-v1
+description: 'Bowl starts upside-down inside a rack compartment. Suction gripper grasps the bowl bottom and extracts
+  it from the rack, then hands it over to parallel jaw gripper which grasps the rim and places it on the
+  table.
+  '
+max_episode_steps: 5000
+reward_type: sparse
+action_mode: cartesian_delta
+control_freq: 100
+
+# ── Scene ──────────────────────────────────────────────────────────
+scene:
+  table:
+    height: 0.9
+    full_size: [1.0, 0.75, 0.05]
+    offset: null
+  robot_offset: null
+  object_color: null                   # base payload RGBA; null = use mesh texture
+  robot_rotation_z: [-90, 90]
+  table_color: [1.0, 1.0, 1.0, 1.0]   # base table-top RGBA (white)
+
+task_conditions:
+  success: {}
+  failure:
+    floor_drop_below: 0.05
+
+# ── Domain randomization (re-sampled every reset) ─────────────────
+# Physics axes (mass/friction) apply only with BOTH enabled: true AND a
+# range; ranges use [min, max] uniform sampling.
+randomization:
+  # ── Physics ──
+  payload_mass:                        # payload body mass (kg)
+    enabled: true
+    # range: [0.05, 0.20]
+  payload_friction:                    # payload sliding friction
+    enabled: true
+    # range: [0.2, 0.8]
+  table_friction:                      # table surface sliding friction
+    enabled: true
+    # range: [0.5, 1.5]
+  # ── Placement ──
+  payload_placement:                   # Gaussian jitter on payload start position
+    enabled: true
+    x_std: 0.01                        # std dev in meters for x-axis
+    y_std: 0.01                        # std dev in meters for y-axis
+  # ── Visual ──
+  object_color:                        # randomize payload RGBA each reset
+    enabled: false
+  table_color:                         # randomize table-top RGBA each reset
+    enabled: false
+  lighting:
+    position: true                     # randomize light position each reset
+    color: false                       # randomize light diffuse/ambient color
+  # ── Dynamics ──
+  action_noise:                        # Gaussian noise on commanded actions
+    enabled: false
+    # std: 0.01
+  observation_noise:                   # Gaussian noise on proprio observations
+    enabled: false
+    # std: 0.005
+
+recording:
+  save_freq:
+    proprio: 100
+    force_torque: 50
+    object_state: 50
+    cameras: 25
+    tactile: 50
+  save:
+    action: true
+    reward: true
+    task_score: true
+    joint_positions: true
+    ee_poses: true
+payload: bowl
+fixture: rack
+grippers:
+- PandaGripper
+- PandaSuctionGripper
+# Rack sits in front of R1 (suction, base ≈ y=+0.6), well inside the
+# table.  The rack footprint after the +90° Z fixture rotation spans
+# roughly x ∈ centre ± 0.09 and y ∈ centre ± 0.185.  A centre at
+# (0.10, 0.15) keeps the entire fixture inside the table (y_max = 0.375
+# vs. rack-y_max = 0.335) and inside R1's natural top-down reach band.
+# The bowl spawns upside-down in the +y compartment of the rack at
+# y = fix_y + 0.10 (compartment centre).
+payload_pos:
+- 0.10
+- 0.25
+- 0.945
+payload_quat:
+- 0
+- 1
+- 0
+- 0
+fixture_pos:
+- 0.10
+- 0.15
+- 0.901
+# IK_POSE in absolute mode.  Robosuite still consumes the action as a
+# small per-step Cartesian + axis-angle delta in world frame (because
+# ``control_delta`` defaults to True for IK_POSE), and the pre-scale in
+# ``HetBiBaseTask.step`` multiplies the position channel by 0.005 m and
+# the orientation channel by 0.01 rad before the IK sees it — so a
+# scripted policy can write actions in [-1, 1] and get ~5 mm / 0.01 rad
+# per control tick at 100 Hz.
+controller:
+- type: IK_POSE
+  robot: Panda
+  ik_pos_limit: 1.0
+  ik_ori_limit: 1.0
+  input_type: absolute
+  impedance_mode: fixed
+  kp: 10000
+  damping_ratio: 1
+  kp_limits: [0, 100000]
+- type: IK_POSE
+  robot: Panda
+  ik_pos_limit: 1.0
+  ik_ori_limit: 1.0
+  input_type: absolute
+  impedance_mode: fixed
+  kp: 10000
+  damping_ratio: 1
+  kp_limits: [0, 100000]
+ik_scale:
+  pos_sensitivity: 0.005
+  ori_sensitivity: 0.01
+obs:
+  proprio:
+    enabled: true
+    keys:
+    - robot0_eef_pos
+    - robot0_eef_quat
+    - robot0_gripper_qpos
+    - robot0_joint_pos
+    - robot0_joint_vel
+    - robot1_eef_pos
+    - robot1_eef_quat
+    - robot1_gripper_qpos
+    - robot1_joint_pos
+    - robot1_joint_vel
+    save: true
+  object_state:
+    enabled: true
+    save: true
+  cameras:
+    gripper0_cam:
+      enabled: true
+      robosuite_name: robot0_eye_in_hand
+      width: 640
+      height: 480
+      depth: false
+      save: true
+    gripper1_cam:
+      enabled: true
+      robosuite_name: robot1_eye_in_hand
+      width: 640
+      height: 480
+      depth: false
+      save: true
+    exo_front_cam:
+      enabled: true
+      robosuite_name: frontview
+      width: 640
+      height: 480
+      depth: false
+      save: true
+    agent_cam:
+      enabled: true
+      robosuite_name: agentview
+      width: 640
+      height: 480
+      depth: false
+      save: true
+  force_torque:
+    enabled: true
+    keys:
+    - robot0_ft_sensor
+    - robot1_ft_sensor
+    save: true
+  tactile:
+    enabled: true
+    fingers:
+    - right
+    - left
+    rows: 8
+    cols: 8
+    spacing: 0.001
+    save: true

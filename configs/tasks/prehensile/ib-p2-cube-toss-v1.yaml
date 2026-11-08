@@ -1,0 +1,154 @@
+task_id: ib-p2-cube-toss-v1
+description: >-
+  Single arm: grasp a cube and toss it to a goal position on the table,
+  waiting for it to come to rest within the goal radius.
+max_episode_steps: 1000
+reward_type: sparse
+action_mode: cartesian_delta
+control_freq: 100
+
+# ── Scene geometry ─────────────────────────────────────────────────
+scene:
+  table:
+    # x from -0.25 to 1.2: the near edge stops at the robot pedestal
+    # (radius 0.18 m, centred 2 cm behind the base) instead of enclosing it.
+    full_size: [1.45, 1.0, 0.05]
+    height: 0.8
+    offset: [0.475, 0, 0.8]
+  robot_offset: [-0.41, 0, 0]
+
+# ── Object placement bounds (meters from table center) ─────────────
+placement:
+  center: null
+  x_range: 0.12
+  y_range: 0.12
+
+# ── Domain randomization (re-sampled every reset) ─────────────────
+randomization:
+  object_color:
+    enabled: true
+  lighting:
+    position: true
+    color: false
+  goal_region:
+    # Polar goal around the world origin, then clamped to outside arm reach
+    # (0.855 m + radius from the robot base) and onto the table; the
+    # effective goals span about 0.72-0.82 m and +-20 deg, not the full ranges.
+    enabled: true
+    distance_range: [0.55, 0.8]
+    angle_range: [-45, 45]
+    radius_range: [0.25, 0.35]
+
+# ── Task-specific parameters ───────────────────────────────────────
+task:
+  goal_pos: [0.6, 0.0]
+  goal_radius: 0.10
+  rest_velocity_threshold: 0.01
+  rest_steps: 20
+  cube_mass: 0.05
+  cube_size: 0.02
+  min_release_dist: 0.15  # cube must leave the robot at least this far (m) outside the goal circle
+  release_xy_boost: 3.0  # cube xy velocity multiplier applied just after a lifted release (1.0 = off)
+
+task_conditions:
+  success:
+    score_threshold: 1.0
+  failure:
+    floor_z_threshold: 0.05
+
+recording:
+  save_freq:
+    proprio: 100
+    force_torque: 50
+    object_state: 50
+    cameras: 25
+    tactile: 50
+  save:
+    action: true
+    reward: true
+    task_score: true
+    joint_positions: true
+    ee_poses: true
+
+controller:
+  type: OSC_POSE
+  robot: Panda
+  kp: 200
+  damping_ratio: 0.3
+  impedance_mode: fixed
+  uncouple_pos_ori: true
+  input_type: delta
+  input_ref_frame: base
+
+obs:
+  proprio:
+    enabled: true
+    keys:
+    - robot0_eef_pos
+    - robot0_eef_quat
+    - robot0_gripper_qpos
+    - robot0_joint_pos
+    - robot0_joint_vel
+    save: true
+  object_state:
+    enabled: true
+    save: true
+  cameras:
+    gripper_cam:
+      enabled: true
+      robosuite_name: robot0_eye_in_hand
+      width: 640
+      height: 480
+      depth: false
+      save: true
+    ego_cam:
+      enabled: true
+      robosuite_name: robot0_robotview
+      width: 640
+      height: 480
+      depth: false
+      save: true
+    exo_bird_cam:
+      enabled: true
+      robosuite_name: birdview
+      pos: [0.4, 0.0, 2.0]
+      quat: [0.0, 0.0, 0.0, 1.0]
+      fovy: 60
+      width: 640
+      height: 480
+      depth: false
+      save: true
+    exo_right_cam:
+      enabled: true
+      robosuite_name: agentview
+      pos: [0.4, -1.2, 1.4]
+      quat: [0.8254, 0.5646, 0.0, 0.0]
+      fovy: 60
+      width: 640
+      height: 480
+      depth: false
+      save: true
+    exo_left_cam:
+      enabled: true
+      robosuite_name: sideview
+      pos: [0.4, 1.2, 1.4]
+      quat: [0.0, 0.0, 0.5646, 0.8254]
+      fovy: 60
+      width: 640
+      height: 480
+      depth: false
+      save: true
+  force_torque:
+    enabled: true
+    keys:
+    - robot0_ft_sensor
+    save: true
+  tactile:
+    enabled: true
+    fingers:
+    - right
+    - left
+    rows: 8
+    cols: 8
+    spacing: 0.001
+    save: true

@@ -1,0 +1,168 @@
+task_id: ib-p1-recover-peg-insert-v2
+description: >-
+  Single arm: grasp a cuboidal rod from the table, tip it onto its side,
+  and push it horizontally through a rectangular slot fixture mounted to
+  the robot's left.
+max_episode_steps: 1500
+reward_type: sparse
+action_mode: cartesian_delta
+control_freq: 100
+
+# ── Scene geometry ─────────────────────────────────────────────────
+scene:
+  table:
+    full_size: [0.85, 0.85, 0.05]
+    height: 0.8
+    offset: null
+  robot_offset: null
+
+# ── Peg placement bounds (base sampler; task overrides via reset) ──
+placement:
+  center: null
+  x_range: 0.0
+  y_range: 0.0
+  ensure_valid_placement: false
+
+# ── Domain randomization (re-sampled every reset) ─────────────────
+randomization:
+  object_color:
+    enabled: false
+  lighting:
+    position: true
+    color: false
+
+# ── Task-specific parameters ───────────────────────────────────────
+task:
+  # Peg (cuboidal rod) geometry. The peg's long axis is its local +Z.
+  # ``peg_half_cross`` is the half-extent of the square cross-section
+  # (X and Y in the peg's local frame).
+  peg_half_cross: 0.012
+  peg_half_length: 0.08
+
+  # RectSlot placement: XY centre + per-reset jitter. Positioned to the
+  # robot's left (world +Y); the task code applies a fixed yaw of -π/2
+  # so the slot axis runs along world ±Y with the entrance facing the
+  # robot. No yaw randomization — the fixture is always axis-aligned.
+  slot_center_xy: [0.0, 0.25]
+  slot_center_jitter: [0.03, 0.03]
+
+  # Success thresholds. ``insert_fraction`` is the fraction of the peg's
+  # length that must lie inside the slot, between its entrance and exit
+  # planes; 0.95 means 95% of the peg inside the slot. The task code
+  # converts this to an axial distance window using peg_half_length.
+  insert_fraction: 0.95
+  lateral_tolerance: 0.015
+  alignment_threshold: 0.92
+
+  # Peg spawn XY range (table-relative). Robot is at world -X; slot is
+  # to the robot's left (+Y). The task code rejection-samples inside
+  # this box while staying outside the slot-board footprint plus a
+  # ``slot_keepout`` margin (below) so the peg doesn't clip the legs.
+  peg_spawn_xy_range:
+    - [-0.15, 0.20]    # x range (span in front of the robot)
+    - [-0.1, -0.25]    # y range (wider — keep-out carves the slot out)
+  slot_keepout: 0.03
+
+  # Recovery perturbation: once per episode, when the peg is both grasped
+  # AND aligned with the hole (|dx| ≤ trigger_x_tolerance, |dy| ≤
+  # trigger_y_tolerance AND |dz| ≤ trigger_z_tolerance), we start smoothly
+  # rotating the peg by a total of ±``yaw_deg`` about world +Z, spread over
+  # ``ramp_steps`` control steps. The approach axis is world +Y, so X/Z is
+  # the alignment plane; the Y-depth tolerance is loose.
+  perturb:
+    yaw_deg: 10.0                 # total yaw magnitude; sign is randomised
+    ramp_steps: 100               # ticks over which the yaw is applied
+    trigger_x_tolerance: 0.03     # meters; |peg_x − hole_x| ≤ this
+    trigger_y_tolerance: 0.15     # meters; |peg_y − hole_y| ≤ this
+                                  # (loose — Y is the approach axis)
+    trigger_z_tolerance: 0.03     # meters; |peg_z − hole_z| ≤ this
+
+task_conditions:
+  success:
+    score_threshold: 1.0
+  failure:
+    floor_z_threshold: 0.05
+
+recording:
+  save_freq:
+    proprio: 100
+    force_torque: 50
+    object_state: 50
+    cameras: 25
+    tactile: 50
+  save:
+    action: true
+    reward: true
+    task_score: true
+    joint_positions: true
+    ee_poses: true
+
+controller:
+  type: OSC_POSE
+  robot: Panda
+  kp: 200
+  damping_ratio: 1
+  impedance_mode: fixed
+  uncouple_pos_ori: true
+  input_type: delta
+  input_ref_frame: base
+
+obs:
+  proprio:
+    enabled: true
+    keys:
+    - robot0_eef_pos
+    - robot0_eef_quat
+    - robot0_gripper_qpos
+    - robot0_joint_pos
+    - robot0_joint_vel
+    save: true
+  object_state:
+    enabled: true
+    save: true
+  cameras:
+    gripper_cam:
+      enabled: true
+      robosuite_name: robot0_eye_in_hand
+      width: 640
+      height: 480
+      depth: false
+      save: true
+    exo_front_cam:
+      enabled: true
+      robosuite_name: frontview
+      width: 640
+      height: 480
+      depth: false
+      save: true
+    exo_bird_cam:
+      enabled: true
+      robosuite_name: birdview
+      width: 640
+      height: 480
+      depth: false
+      save: true
+    exo_right_cam:
+      enabled: true
+      robosuite_name: agentview
+      pos: [0.0, -0.9, 1.2]
+      quat: [0.8254, 0.5646, 0.0, 0.0]
+      fovy: 60
+      width: 640
+      height: 480
+      depth: false
+      save: true
+  force_torque:
+    enabled: true
+    keys:
+    - robot0_ft_sensor
+    save: true
+  tactile:
+    enabled: true
+    fingers:
+    - right
+    - left
+    rows: 8
+    cols: 8
+    spacing: 0.001
+    save: true

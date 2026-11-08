@@ -1,0 +1,177 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 620" font-family="Segoe UI, Arial, sans-serif">
+  <defs>
+    <style>
+      .label { font-size: 11px; fill: #1a1a2e; font-weight: 600; }
+      .action { font-size: 10px; fill: #4a4a6a; }
+      .btn-label { font-size: 11px; fill: white; font-weight: 700; text-anchor: middle; dominant-baseline: central; }
+      .section-title { font-size: 13px; fill: #0f3460; font-weight: 700; }
+      .line { stroke: #7f8fa6; stroke-width: 1.2; fill: none; stroke-dasharray: 4,3; }
+      .line-solid { stroke: #7f8fa6; stroke-width: 1.2; fill: none; }
+    </style>
+    <filter id="shadow" x="-5%" y="-5%" width="115%" height="115%">
+      <feDropShadow dx="0" dy="3" stdDeviation="6" flood-opacity="0.15"/>
+    </filter>
+    <linearGradient id="bodyGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#3a3a5c"/>
+      <stop offset="100%" stop-color="#2a2a44"/>
+    </linearGradient>
+    <linearGradient id="gripGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#2e2e4a"/>
+      <stop offset="100%" stop-color="#1e1e36"/>
+    </linearGradient>
+    <radialGradient id="stickGrad">
+      <stop offset="0%" stop-color="#5a5a7a"/>
+      <stop offset="100%" stop-color="#3a3a5c"/>
+    </radialGradient>
+    <radialGradient id="dpadGrad">
+      <stop offset="0%" stop-color="#4a4a6a"/>
+      <stop offset="100%" stop-color="#2e2e4a"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="900" height="620" rx="16" fill="#f0f2f8"/>
+
+  <!-- Title -->
+  <text x="450" y="35" text-anchor="middle" font-size="20" font-weight="700" fill="#0f3460">Gamepad Controls — Teleoperation</text>
+  <text x="450" y="54" text-anchor="middle" font-size="11" fill="#7f8fa6">All inputs are binary (direction only, constant speed). Config: configs/teleop/gamepad.yaml</text>
+
+  <!-- ===== CONTROLLER BODY ===== -->
+  <g transform="translate(450, 300)" filter="url(#shadow)">
+    <!-- Grips -->
+    <path d="M-175,30 Q-195,80 -185,140 Q-175,175 -145,175 Q-120,175 -115,140 L-110,50" fill="url(#gripGrad)" stroke="#1a1a2e" stroke-width="1.5"/>
+    <path d="M175,30 Q195,80 185,140 Q175,175 145,175 Q120,175 115,140 L110,50" fill="url(#gripGrad)" stroke="#1a1a2e" stroke-width="1.5"/>
+
+    <!-- Main body -->
+    <rect x="-190" y="-75" width="380" height="120" rx="55" fill="url(#bodyGrad)" stroke="#1a1a2e" stroke-width="1.5"/>
+
+    <!-- Bumpers LB / RB -->
+    <rect x="-170" y="-88" width="80" height="18" rx="8" fill="#4e4e70" stroke="#1a1a2e" stroke-width="1"/>
+    <text x="-130" y="-76" class="btn-label" font-size="10">LB</text>
+    <rect x="90" y="-88" width="80" height="18" rx="8" fill="#4e4e70" stroke="#1a1a2e" stroke-width="1"/>
+    <text x="130" y="-76" class="btn-label" font-size="10">RB</text>
+
+    <!-- Triggers LT / RT -->
+    <rect x="-160" y="-112" width="60" height="22" rx="6" fill="#5c3a3a" stroke="#1a1a2e" stroke-width="1"/>
+    <text x="-130" y="-98" class="btn-label" font-size="10">LT</text>
+    <rect x="100" y="-112" width="60" height="22" rx="6" fill="#5c3a3a" stroke="#1a1a2e" stroke-width="1"/>
+    <text x="130" y="-98" class="btn-label" font-size="10">RT</text>
+
+    <!-- Left stick base + stick -->
+    <circle cx="-100" cy="-15" r="32" fill="#222240" stroke="#1a1a2e" stroke-width="1.5"/>
+    <circle cx="-100" cy="-15" r="20" fill="url(#stickGrad)" stroke="#50507a" stroke-width="1"/>
+    <!-- arrows on stick -->
+    <text x="-100" y="-4" text-anchor="middle" font-size="9" fill="#bbb" font-weight="600">L</text>
+
+    <!-- Right stick base + stick -->
+    <circle cx="60" cy="25" r="32" fill="#222240" stroke="#1a1a2e" stroke-width="1.5"/>
+    <circle cx="60" cy="25" r="20" fill="url(#stickGrad)" stroke="#50507a" stroke-width="1"/>
+    <text x="60" y="36" text-anchor="middle" font-size="9" fill="#bbb" font-weight="600">R</text>
+
+    <!-- D-Pad -->
+    <g transform="translate(-40, 25)">
+      <rect x="-8" y="-24" width="16" height="48" rx="3" fill="url(#dpadGrad)" stroke="#1a1a2e" stroke-width="1"/>
+      <rect x="-24" y="-8" width="48" height="16" rx="3" fill="url(#dpadGrad)" stroke="#1a1a2e" stroke-width="1"/>
+      <!-- arrows -->
+      <polygon points="0,-18 -4,-12 4,-12" fill="#aaa"/>
+      <polygon points="0,18 -4,12 4,12" fill="#aaa"/>
+    </g>
+
+    <!-- Face buttons -->
+    <g transform="translate(130, -18)">
+      <!-- A (south) - green -->
+      <circle cx="0" cy="28" r="13" fill="#2d8a4e" stroke="#1a1a2e" stroke-width="1"/>
+      <text x="0" y="28" class="btn-label">A</text>
+      <!-- B (east) - red -->
+      <circle cx="24" cy="4" r="13" fill="#c0392b" stroke="#1a1a2e" stroke-width="1"/>
+      <text x="24" y="4" class="btn-label">B</text>
+      <!-- X (west) - blue -->
+      <circle cx="-24" cy="4" r="13" fill="#2874a6" stroke="#1a1a2e" stroke-width="1"/>
+      <text x="-24" y="4" class="btn-label">X</text>
+      <!-- Y (north) - yellow -->
+      <circle cx="0" cy="-20" r="13" fill="#b7950b" stroke="#1a1a2e" stroke-width="1"/>
+      <text x="0" y="-20" class="btn-label">Y</text>
+    </g>
+  </g>
+
+  <!-- ===== LABELS / CALLOUTS ===== -->
+
+  <!-- LEFT SIDE LABELS -->
+
+  <!-- LT label -->
+  <rect x="30" y="100" width="170" height="38" rx="6" fill="#fff3f3" stroke="#d4a0a0" stroke-width="1"/>
+  <text x="40" y="115" class="label">LT  (Left Trigger)</text>
+  <text x="40" y="130" class="action">Gripper OPEN (ramp toward -1)</text>
+  <line x1="200" y1="126" x2="295" y2="192" class="line" marker-end="none"/>
+
+  <!-- LB label -->
+  <rect x="30" y="152" width="170" height="38" rx="6" fill="#f3f0ff" stroke="#a0a0d4" stroke-width="1"/>
+  <text x="40" y="167" class="label">LB  (Left Bumper)</text>
+  <text x="40" y="182" class="action">-Roll rotation</text>
+  <line x1="200" y1="174" x2="295" y2="215" class="line"/>
+
+  <!-- Left Stick label -->
+  <rect x="15" y="225" width="195" height="52" rx="6" fill="#f0f4ff" stroke="#a0b4d4" stroke-width="1"/>
+  <text x="25" y="241" class="label">Left Stick</text>
+  <text x="25" y="255" class="action">X-axis: Y translation (strafe L/R)</text>
+  <text x="25" y="269" class="action">Y-axis: X translation (fwd/back)</text>
+  <line x1="210" y1="254" x2="330" y2="285" class="line"/>
+
+  <!-- D-Pad label -->
+  <rect x="15" y="340" width="195" height="42" rx="6" fill="#f0fff4" stroke="#a0d4b0" stroke-width="1"/>
+  <text x="25" y="356" class="label">D-Pad Up / Down</text>
+  <text x="25" y="370" class="action">Z translation (up / down)</text>
+  <line x1="210" y1="362" x2="390" y2="325" class="line"/>
+
+
+  <!-- RIGHT SIDE LABELS -->
+
+  <!-- RT label -->
+  <rect x="700" y="100" width="170" height="38" rx="6" fill="#fff3f3" stroke="#d4a0a0" stroke-width="1"/>
+  <text x="710" y="115" class="label">RT  (Right Trigger)</text>
+  <text x="710" y="130" class="action">Gripper CLOSE (ramp toward +1)</text>
+  <line x1="700" y1="126" x2="605" y2="192" class="line"/>
+
+  <!-- RB label -->
+  <rect x="700" y="152" width="170" height="38" rx="6" fill="#f3f0ff" stroke="#a0a0d4" stroke-width="1"/>
+  <text x="710" y="167" class="label">RB  (Right Bumper)</text>
+  <text x="710" y="182" class="action">+Roll rotation</text>
+  <line x1="700" y1="174" x2="605" y2="215" class="line"/>
+
+  <!-- Right Stick label -->
+  <rect x="690" y="245" width="185" height="52" rx="6" fill="#f0f4ff" stroke="#a0b4d4" stroke-width="1"/>
+  <text x="700" y="261" class="label">Right Stick</text>
+  <text x="700" y="275" class="action">X-axis: Yaw rotation</text>
+  <text x="700" y="289" class="action">Y-axis: Pitch rotation</text>
+  <line x1="690" y1="274" x2="530" y2="325" class="line"/>
+
+  <!-- A button label -->
+  <rect x="700" y="315" width="185" height="38" rx="6" fill="#f0fff4" stroke="#7dcea0" stroke-width="1"/>
+  <text x="710" y="330" class="label">A  (South Button)</text>
+  <text x="710" y="345" class="action">Snap-toggle gripper open/close</text>
+  <line x1="700" y1="335" x2="590" y2="310" class="line"/>
+
+  <!-- B button label -->
+  <rect x="700" y="367" width="185" height="38" rx="6" fill="#fff0f0" stroke="#d4a0a0" stroke-width="1"/>
+  <text x="710" y="382" class="label">B  (East Button)</text>
+  <text x="710" y="397" class="action">End episode</text>
+  <line x1="700" y1="388" x2="610" y2="303" class="line"/>
+
+  <!-- Y button label -->
+  <rect x="700" y="419" width="185" height="42" rx="6" fill="#fffff0" stroke="#d4d4a0" stroke-width="1"/>
+  <text x="710" y="434" class="label">Y  (North Button)</text>
+  <text x="710" y="449" class="action">Switch arm (bimanual only)</text>
+  <line x1="700" y1="435" x2="595" y2="280" class="line"/>
+
+  <!-- ===== CONSTANTS BOX ===== -->
+  <rect x="60" y="440" width="340" height="105" rx="8" fill="#ffffff" stroke="#c8cfe0" stroke-width="1"/>
+  <text x="80" y="462" class="section-title">Tuning Constants</text>
+  <text x="80" y="482" class="action">DEADZONE = 0.25    stick threshold</text>
+  <text x="80" y="497" class="action">TRIGGER_DEADZONE = 0.10    trigger threshold</text>
+  <text x="80" y="512" class="action">SPEED = 0.08    motion magnitude / tick</text>
+  <text x="80" y="527" class="action">GRIPPER_SPEED = 0.10    gripper ramp / tick</text>
+
+  <!-- Legend note -->
+  <text x="450" y="590" text-anchor="middle" font-size="10" fill="#999">Gripper: -1 = fully open, +1 = fully closed  |  All axes produce constant-speed binary output</text>
+  <text x="450" y="606" text-anchor="middle" font-size="10" fill="#bbb">X (blue) button is unassigned</text>
+</svg>

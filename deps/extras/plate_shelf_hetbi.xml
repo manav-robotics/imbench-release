@@ -1,0 +1,70 @@
+<mujoco model="plate_shelf_hetbi">
+  <compiler angle="radian"/>
+  <worldbody>
+    <body>
+      <body name="object" pos="0 0 0">
+        <!--
+          Tabletop Shelf (3 vertical slots)
+          Origin at bottom-centre of base plate.
+          Width 0.40 m, Depth 0.29 m, Height 0.29 m.
+          HetBi plate-only variant: 120 mm centre slot and 280 mm usable
+          depth. The plate fits completely on edge, including its 262 mm
+          axis; the narrow guides constrain yaw and tilt during insertion.
+        -->
+
+        <!-- Base plate (z = 0 .. 0.01) -->
+        <geom name="vis" type="box" size="0.20 0.145 0.005"
+              pos="0 0 0.005" rgba="0.65 0.45 0.25 1"
+              group="1" contype="0" conaffinity="0"/>
+        <geom name="col_0" type="box" size="0.20 0.145 0.005"
+              pos="0 0 0.005" rgba="0.65 0.45 0.25 1"
+              group="0"/>
+
+        <!-- Back panel -->
+        <geom name="col_1_v" type="box" size="0.20 0.005 0.140"
+              pos="0 0.140 0.150" rgba="0.60 0.40 0.20 1"
+              group="1" contype="0" conaffinity="0"/>
+        <geom name="col_1" type="box" size="0.20 0.005 0.140"
+              pos="0 0.140 0.150" rgba="0.60 0.40 0.20 1"
+              group="0"/>
+
+        <!-- Left wall -->
+        <geom name="col_2_v" type="box" size="0.005 0.145 0.140"
+              pos="-0.195 0 0.150" rgba="0.65 0.45 0.25 1"
+              group="1" contype="0" conaffinity="0"/>
+        <geom name="col_2" type="box" size="0.005 0.145 0.140"
+              pos="-0.195 0 0.150" rgba="0.65 0.45 0.25 1"
+              group="0"/>
+
+        <!-- Right wall -->
+        <geom name="col_3_v" type="box" size="0.005 0.145 0.140"
+              pos="0.195 0 0.150" rgba="0.65 0.45 0.25 1"
+              group="1" contype="0" conaffinity="0"/>
+        <geom name="col_3" type="box" size="0.005 0.145 0.140"
+              pos="0.195 0 0.150" rgba="0.65 0.45 0.25 1"
+              group="0"/>
+
+        <!-- Divider 1 (x = -0.0635) -->
+        <geom name="col_4_v" type="box" size="0.0035 0.145 0.140"
+              pos="-0.0635 0 0.150" rgba="0.75 0.75 0.75 1"
+              group="1" contype="0" conaffinity="0"/>
+        <geom name="col_4" type="box" size="0.0035 0.145 0.140"
+              pos="-0.0635 0 0.150" rgba="0.75 0.75 0.75 1"
+              group="0"/>
+
+        <!-- Divider 2 (x = +0.0635) -->
+        <geom name="col_5_v" type="box" size="0.0035 0.145 0.140"
+              pos="0.0635 0 0.150" rgba="0.75 0.75 0.75 1"
+              group="1" contype="0" conaffinity="0"/>
+        <geom name="col_5" type="box" size="0.0035 0.145 0.140"
+              pos="0.0635 0 0.150" rgba="0.75 0.75 0.75 1"
+              group="0"/>
+
+        <inertial pos="0 0 0.14" mass="5.0" diaginertia="0.05 0.05 0.05"/>
+      </body>
+      <site rgba="0 0 0 0" size="0.005" pos="0 0 0" name="bottom_site"/>
+      <site rgba="0 0 0 0" size="0.005" pos="0 0 0.29" name="top_site"/>
+      <site rgba="0 0 0 0" size="0.005" pos="0.20 0.145 0" name="horizontal_radius_site"/>
+    </body>
+  </worldbody>
+</mujoco>

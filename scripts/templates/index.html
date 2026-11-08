@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IMBench Dashboard</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+         background: #0f1117; color: #e0e0e0; }
+
+  .header { background: #1a1d27; padding: 16px 24px; display: flex;
+            justify-content: space-between; align-items: center;
+            border-bottom: 1px solid #2a2d37; }
+  .header h1 { font-size: 20px; color: #fff; }
+  .status-bar { display: flex; gap: 24px; font-size: 14px; }
+  .status-item { display: flex; align-items: center; gap: 6px; }
+
+  .tabs { display: flex; background: #1a1d27; border-bottom: 1px solid #2a2d37; }
+  .tab { padding: 10px 24px; cursor: pointer; color: #888; font-size: 14px;
+         font-weight: 600; border-bottom: 2px solid transparent; }
+  .tab:hover { color: #ccc; }
+  .tab.active { color: #3b82f6; border-bottom-color: #3b82f6; }
+
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  .label-bar { background: #1a1d27; padding: 12px 24px;
+               border-bottom: 1px solid #2a2d37; display: flex;
+               align-items: center; gap: 8px; flex-wrap: wrap; }
+  .label-bar-title { font-size: 13px; color: #888; margin-right: 8px; }
+  .label-btn { padding: 8px 14px; border: 2px solid #333; border-radius: 8px;
+               background: #1e2030; color: #ccc; font-size: 13px; font-weight: 600;
+               cursor: pointer; transition: all 0.15s; }
+  .label-btn:hover { background: #2a2d40; border-color: #555; }
+  .label-btn.lbl-success { border-color: #16a34a; }
+  .label-btn.lbl-success:hover { background: #14532d; color: #86efac; }
+  .label-btn.lbl-partial { border-color: #ca8a04; }
+  .label-btn.lbl-partial:hover { background: #422006; color: #fcd34d; }
+  .label-btn.lbl-failure { border-color: #dc2626; }
+  .label-btn.lbl-failure:hover { background: #3f1219; color: #fca5a5; }
+
+  .episodes { padding: 24px; display: grid;
+              grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+              gap: 16px; }
+  .episode-card { background: #1a1d27; border: 2px solid #2a2d37;
+                  border-radius: 12px; padding: 16px; cursor: pointer;
+                  transition: all 0.15s; }
+  .episode-card:hover { border-color: #3b82f6; transform: translateY(-2px); }
+  .episode-card.selected { border-color: #3b82f6; background: #1e2a3f; }
+  .episode-card.labeled-success { border-left: 4px solid #22c55e; }
+  .episode-card.labeled-failure { border-left: 4px solid #ef4444; }
+  .episode-card.labeled-partial { border-left: 4px solid #eab308; }
+  .episode-card.unlabeled { border-left: 4px solid #555; }
+  .ep-header { display: flex; justify-content: space-between;
+               align-items: center; margin-bottom: 8px; }
+  .ep-name { font-size: 13px; font-weight: 600; color: #fff; font-family: monospace; }
+  .ep-label { font-size: 12px; padding: 2px 8px; border-radius: 4px; font-weight: 600; }
+  .ep-label.success { background: #14532d; color: #86efac; }
+  .ep-label.failure { background: #3f1219; color: #fca5a5; }
+  .ep-label.partial { background: #422006; color: #fcd34d; }
+  .ep-label.none { background: #333; color: #888; }
+  .ep-meta { font-size: 12px; color: #888; display: flex; gap: 16px; flex-wrap: wrap; }
+
+  .form-panel { padding: 24px; max-width: 800px; }
+  .form-panel h2 { font-size: 16px; margin-bottom: 16px; color: #fff; }
+  .form-panel p.hint { font-size: 13px; color: #888; margin-bottom: 20px; }
+  .form-group { margin-bottom: 16px; }
+  .form-group label { display: block; font-size: 13px; color: #888; margin-bottom: 4px; }
+  .form-group input, .form-group select, .form-group textarea {
+    width: 100%; padding: 10px 12px; background: #1e2030; border: 1px solid #333;
+    border-radius: 6px; color: #fff; font-size: 14px; }
+  .form-group textarea { font-family: monospace; min-height: 80px; resize: vertical; }
+  .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+    outline: none; border-color: #3b82f6; }
+  .form-row { display: flex; gap: 16px; }
+  .form-row .form-group { flex: 1; }
+  .btn { padding: 10px 24px; border: none; border-radius: 8px; font-size: 14px;
+         font-weight: 600; cursor: pointer; }
+  .btn-primary { background: #3b82f6; color: #fff; }
+  .btn-primary:hover { background: #2563eb; }
+  .btn-secondary { background: #333; color: #ccc; }
+  .btn-secondary:hover { background: #444; }
+  .btn-danger { background: #dc2626; color: #fff; }
+  .btn-danger:hover { background: #b91c1c; }
+  .btn-row { display: flex; gap: 12px; margin-top: 16px; }
+  .status-msg { margin-top: 12px; font-size: 13px; color: #22c55e; }
+
+  .task-card { background: #1e2030; border: 1px solid #333; border-radius: 8px;
+               padding: 16px; margin-bottom: 16px; }
+  .task-card h3 { font-size: 14px; color: #fff; margin-bottom: 12px; }
+  .code-row { display: flex; gap: 8px; align-items: center; margin-bottom: 6px; }
+  .code-num { width: 30px; font-weight: 600; color: #888; text-align: center; }
+  .code-input { flex: 1; }
+  .subtask-row { display: flex; gap: 8px; align-items: center; margin-bottom: 6px; }
+  .crew-row { display: flex; gap: 8px; align-items: center; margin-bottom: 6px; }
+
+  .empty { text-align: center; padding: 80px; color: #666; }
+  .toast { position: fixed; bottom: 24px; right: 24px; padding: 12px 20px;
+           border-radius: 8px; font-weight: 600; font-size: 14px; opacity: 0;
+           transition: opacity 0.3s; pointer-events: none; z-index: 100; }
+  .toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>IMBench Dashboard</h1>
+  <div class="status-bar">
+    <div class="status-item"><span id="stat-size">0 MB</span></div>
+  </div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" data-tab="episodes">Episodes</div>
+  <div class="tab" data-tab="session">Session Setup</div>
+  <div class="tab" data-tab="master">Master Config</div>
+  <div class="tab" data-tab="ratings">Annotation Ratings</div>
+  <div class="tab" data-tab="timing">Timing</div>
+</div>
+
+<!-- ════ EPISODES PANEL ════ -->
+<div id="panel-episodes" class="panel active">
+  <div class="label-bar">
+    <span class="label-bar-title">LABEL:</span>
+    <div id="label-buttons"></div>
+  </div>
+
+  <div id="operator-summary" style="display:flex; gap:24px; padding:16px 24px; flex-wrap:wrap;">
+    <div style="flex:1; min-width:260px;">
+      <h3 style="color:#ccc; font-size:13px; text-transform:uppercase; letter-spacing:1px; margin:0 0 10px;">Total Episodes per Operator</h3>
+      <table id="tbl-per-operator" style="width:100%; border-collapse:collapse; font-size:13px;">
+        <thead>
+          <tr style="color:#888; text-align:left; border-bottom:1px solid #333;">
+            <th style="padding:4px 8px;">ID</th>
+            <th style="padding:4px 8px;">Name</th>
+            <th style="padding:4px 8px; text-align:right;">Episodes</th>
+          </tr>
+        </thead>
+        <tbody id="tbody-per-operator"></tbody>
+      </table>
+    </div>
+
+    <div style="flex:2; min-width:360px;">
+      <h3 style="color:#ccc; font-size:13px; text-transform:uppercase; letter-spacing:1px; margin:0 0 10px;">Episodes per Operator per Task</h3>
+      <table id="tbl-per-operator-task" style="width:100%; border-collapse:collapse; font-size:13px;">
+        <thead>
+          <tr style="color:#888; text-align:left; border-bottom:1px solid #333;">
+            <th style="padding:4px 8px;">ID</th>
+            <th style="padding:4px 8px;">Name</th>
+            <th style="padding:4px 8px;">Task</th>
+            <th style="padding:4px 8px; text-align:right;">Episodes</th>
+          </tr>
+        </thead>
+        <tbody id="tbody-per-operator-task"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="episodes" class="episodes">
+    <div class="empty">Loading...</div>
+  </div>
+</div>
+
+<!-- ════ SESSION SETUP PANEL ════ -->
+<div id="panel-session" class="panel">
+  <div class="form-panel">
+    <h2>Session Configuration</h2>
+    <p class="hint">Set the crew before starting a collect_demos.py session.
+      These values will be written into every episode's metadata.json.
+      The task selects the label codes shown when no episode is selected.</p>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Task</label>
+        <select id="cfg-task-id"></select>
+      </div>
+      <div class="form-group">
+        <label>Task Type</label>
+        <select id="cfg-task-type">
+          <option value="single_stage">Single Stage</option>
+          <option value="multi_stage">Multi Stage</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Teleoperator</label>
+        <select id="cfg-teleoperator"></select>
+      </div>
+      <div class="form-group">
+        <label>Safety Watcher</label>
+        <select id="cfg-safety-watcher"></select>
+      </div>
+      <div class="form-group">
+        <label>Supervisor</label>
+        <select id="cfg-supervisor"></select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Robot Model</label>
+        <input type="text" id="cfg-robot-model" placeholder="e.g. Panda">
+      </div>
+      <div class="form-group">
+        <label>Robot ID</label>
+        <input type="text" id="cfg-robot-id" placeholder="e.g. robot-01">
+      </div>
+      <div class="form-group">
+        <label>Sim ID</label>
+        <input type="text" id="cfg-sim-id" placeholder="e.g. mujoco-v3">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Hardware Version</label>
+        <input type="text" id="cfg-hardware-version" placeholder="e.g. v1.0.0">
+      </div>
+      <div class="form-group">
+        <label>Software Version</label>
+        <input type="text" id="cfg-software-version" placeholder="e.g. v1.0.0">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Teleoperation Mode</label>
+        <select id="cfg-teleoperation-mode">
+          <option value="">-- None --</option>
+          <option value="Quest">Quest</option>
+          <option value="Gamepad">Gamepad</option>
+        </select>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="saveSession()">Save Session Config</button>
+    </div>
+    <div class="status-msg" id="session-status"></div>
+  </div>
+</div>
+
+<!-- ════ MASTER CONFIG PANEL ════ -->
+<div id="panel-master" class="panel">
+  <div class="form-panel" style="max-width: 900px;">
+    <h2>Master Configuration</h2>
+    <p class="hint">Define label codes per task and crew. This is the source of truth
+      for episode labeling and session setup. Saved to ~/.imbench/master_config.json
+      (private to the user).</p>
+
+    <h3 style="color: #fff; margin: 24px 0 12px;">Tasks</h3>
+    <div id="master-tasks"></div>
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="addTask()">+ Add Task</button>
+    </div>
+
+    <h3 style="color: #fff; margin: 24px 0 12px;">Crew — Operators</h3>
+    <div id="master-operators"></div>
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="addOperator()">+ Add Operator</button>
+    </div>
+
+    <h3 style="color: #fff; margin: 24px 0 12px;">Crew — Supervisors</h3>
+    <div id="master-supervisors"></div>
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="addSupervisor()">+ Add Supervisor</button>
+    </div>
+
+    <div class="btn-row" style="margin-top: 24px;">
+      <button class="btn btn-primary" onclick="saveMaster()">Save Master Config</button>
+    </div>
+    <div class="status-msg" id="master-status"></div>
+  </div>
+</div>
+
+<!-- ════ ANNOTATION RATINGS PANEL ════ -->
+<div id="panel-ratings" class="panel">
+  <div style="padding: 24px; max-width: 900px;">
+    <h2 style="font-size:16px; color:#fff; margin-bottom:4px;">Annotation Ratings by Task</h2>
+    <p style="font-size:13px; color:#888; margin-bottom:20px;">Live summary of annotation_rating across all collected episodes. Refreshes every 15 s.</p>
+    <table id="tbl-ratings" style="width:100%; border-collapse:collapse; font-size:13px;">
+      <thead>
+        <tr style="color:#888; text-align:left; border-bottom:1px solid #333;">
+          <th style="padding:8px 12px;">Task Name</th>
+          <th style="padding:8px 12px; text-align:right;">Episodes</th>
+          <th style="padding:8px 12px; text-align:right;">Avg Rating</th>
+          <th style="padding:8px 12px; text-align:right;">4★</th>
+          <th style="padding:8px 12px; text-align:right;">5★</th>
+          <th style="padding:8px 12px;">Distribution</th>
+        </tr>
+      </thead>
+      <tbody id="tbody-ratings">
+        <tr><td colspan="6" style="padding:16px; color:#555;">Loading…</td></tr>
+      </tbody>
+    </table>
+    <div style="margin-top:12px; font-size:12px; color:#555;" id="ratings-updated"></div>
+  </div>
+</div>
+
+<!-- ════ TIMING PANEL ════ -->
+<div id="panel-timing" class="panel">
+  <div style="padding: 24px; max-width: 1100px;">
+    <h2 style="font-size:16px; color:#fff; margin-bottom:4px;">Episode Duration — Successful Episodes</h2>
+    <p style="font-size:13px; color:#888; margin-bottom:20px;">
+      Distribution of <code style="background:#1e2030;padding:1px 5px;border-radius:3px;color:#93c5fd;font-size:11px">n_steps</code>
+      for episodes with <em>outcome = success</em>. Refreshes every 15 s.</p>
+
+    <table style="width:100%; border-collapse:collapse; font-size:13px; margin-bottom:32px;">
+      <thead>
+        <tr style="color:#888; text-align:left; border-bottom:1px solid #333;">
+          <th style="padding:8px 12px;">Task</th>
+          <th style="padding:8px 12px; text-align:right;">Episodes</th>
+          <th style="padding:8px 12px; text-align:right;">Min (steps)</th>
+          <th style="padding:8px 12px; text-align:right;">Mean ± Std</th>
+          <th style="padding:8px 12px; text-align:right;">Max (steps)</th>
+        </tr>
+      </thead>
+      <tbody id="tbody-timing">
+        <tr><td colspan="5" style="padding:16px; color:#555;">Loading…</td></tr>
+      </tbody>
+    </table>
+
+    <div id="timing-chart-wrap" style="background:#1a1d27; border:1px solid #2a2d37;
+         border-radius:8px; padding:20px 16px 12px;">
+      <canvas id="timing-chart"></canvas>
+    </div>
+    <div id="timing-chart-missing" style="display:none; font-size:12px; color:#888;">
+      Histogram unavailable: Chart.js could not be loaded from cdn.jsdelivr.net.</div>
+    <div style="margin-top:10px; font-size:12px; color:#555;" id="timing-updated"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"
+        integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ"
+        crossorigin="anonymous"></script>
+<script>
+let episodes = [];
+let selectedEpisode = null;
+let masterConfig = {};
+let sessionConfig = {};
+let labelCodes = {};
+
+// Episode metadata and master-config values come from files on disk; escape
+// them before building HTML (element text and quoted attribute values).
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, c => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+  })[c]);
+}
+
+// ── Tabs ──
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('panel-' + tab.dataset.tab).classList.add('active');
+    if (tab.dataset.tab === 'session') loadSessionSetup();
+    if (tab.dataset.tab === 'master') loadMasterConfig();
+    if (tab.dataset.tab === 'ratings') loadAnnotationRatings();
+    if (tab.dataset.tab === 'timing') loadTimingStats();
+  });
+});
+
+// ── Episodes ──
+let _labelCodesKey = '';  // track when label codes actually change
+let _episodesKey = null;  // what the episode list shows; null forces a render
+
+async function loadEpisodes() {
+  try {
+    const [epResp, statusResp] = await Promise.all([
+      fetch('/api/episodes'), fetch('/api/status'),
+    ]);
+    if (!epResp.ok || !statusResp.ok) throw new Error(`HTTP ${epResp.ok ? statusResp.status : epResp.status}`);
+    const newEpisodes = await epResp.json();
+    const s = await statusResp.json();
+
+    // Only re-render if data actually changed
+    const newKey = JSON.stringify(newEpisodes.map(e => [e.id, e.outcome, e.failure_modes, e.recovery_actions]));
+    episodes = newEpisodes;
+    if (newKey !== _episodesKey) { _episodesKey = newKey; renderEpisodes(); }
+
+    document.getElementById('stat-size').textContent = `${s.total_size_mb} MB`;
+    renderOperatorSummary(s.per_operator || {});
+  } catch (e) {
+    _episodesKey = null;
+    document.getElementById('episodes').innerHTML = e instanceof TypeError
+      ? '<div class="empty"><h2>Cannot connect to dashboard</h2></div>'
+      : `<div class="empty"><h2>Failed to load episodes</h2><p>${escapeHtml(e.message)}</p></div>`;
+  }
+}
+
+async function loadLabelCodes(taskId) {
+  const url = taskId ? `/api/label_codes?task_id=${encodeURIComponent(taskId)}` : '/api/label_codes';
+  try {
+    const resp = await fetch(url);
+    const data = await resp.json();
+    const newKey = JSON.stringify(data.codes);
+    if (newKey !== _labelCodesKey) {
+      _labelCodesKey = newKey;
+      labelCodes = data.codes || {};
+      renderLabelButtons();
+    }
+  } catch (e) { /* keep existing */ }
+}
+
+function renderLabelButtons() {
+  const container = document.getElementById('label-buttons');
+  container.innerHTML = Object.entries(labelCodes).map(([code, name]) => {
+    let cls = 'lbl-failure';
+    if (name.toLowerCase().includes('success')) cls = 'lbl-success';
+    else if (name.toLowerCase().includes('partial')) cls = 'lbl-partial';
+    return `<button class="label-btn ${cls}" data-code="${escapeHtml(code)}">${escapeHtml(code)} ${escapeHtml(name)}</button>`;
+  }).join('');
+}
+
+document.getElementById('label-buttons').addEventListener('click', e => {
+  const btn = e.target.closest('.label-btn');
+  if (btn) applyLabel(Number(btn.dataset.code));
+});
+
+function _epCardHTML(ep) {
+  const outcome = ep.outcome;
+  let cardClass = 'unlabeled', badgeClass = 'none', badgeText = 'unlabeled';
+  if (outcome === 'success') {
+    cardClass = 'labeled-success'; badgeClass = 'success'; badgeText = 'success';
+  } else if (outcome === 'failure') {
+    cardClass = 'labeled-failure'; badgeClass = 'failure';
+    badgeText = ep.failure_modes || 'failure';
+  } else if (outcome === 'partial_success') {
+    cardClass = 'labeled-partial'; badgeClass = 'partial';
+    badgeText = ep.recovery_actions || 'partial';
+  }
+  const sel = selectedEpisode === ep.id ? ' selected' : '';
+  const score = typeof ep.final_score === 'number' ? `score=${ep.final_score.toFixed(2)}` : '';
+  const steps = ep.n_steps ? `${ep.n_steps} steps` : '';
+  const taskShort = ep.task_id ? String(ep.task_id).replace('ib-', '') : '?';
+  return `<div class="episode-card ${cardClass}${sel}" data-ep="${escapeHtml(ep.id)}">
+    <div class="ep-header">
+      <span class="ep-name">${escapeHtml(ep.name)}</span>
+      <span class="ep-label ${badgeClass}">${escapeHtml(badgeText)}</span>
+    </div>
+    <div class="ep-meta">
+      <span>${escapeHtml(taskShort)}</span>
+      ${score ? `<span>${score}</span>` : ''}
+      ${steps ? `<span>${escapeHtml(steps)}</span>` : ''}
+      <span>${escapeHtml(ep.size_mb)} MB</span>
+    </div>
+  </div>`;
+}
+
+function renderOperatorSummary(perOp) {
+  const ops = Object.entries(perOp).sort((a, b) => b[1].total - a[1].total);
+
+  // Table 1 — total per operator
+  document.getElementById('tbody-per-operator').innerHTML = ops.length
+    ? ops.map(([id, d]) =>
+        `<tr style="border-bottom:1px solid #222;">
+          <td style="padding:5px 8px; color:#888;">${escapeHtml(id)}</td>
+          <td style="padding:5px 8px; color:#ddd;">${escapeHtml(d.name)}</td>
+          <td style="padding:5px 8px; text-align:right; color:#fff; font-weight:600;">${d.total}</td>
+        </tr>`).join('')
+    : '<tr><td colspan="3" style="padding:8px; color:#555;">No data</td></tr>';
+
+  // Table 2 — per operator per task
+  const rows = [];
+  for (const [id, d] of ops) {
+    const tasks = Object.entries(d.by_task).sort((a, b) => b[1] - a[1]);
+    tasks.forEach(([task, count], i) => {
+      rows.push(`<tr style="border-bottom:1px solid #222;">
+        <td style="padding:5px 8px; color:#888;">${i === 0 ? escapeHtml(id) : ''}</td>
+        <td style="padding:5px 8px; color:#ddd;">${i === 0 ? escapeHtml(d.name) : ''}</td>
+        <td style="padding:5px 8px; color:#aaa;">${escapeHtml(task)}</td>
+        <td style="padding:5px 8px; text-align:right; color:#fff; font-weight:600;">${count}</td>
+      </tr>`);
+    });
+  }
+  document.getElementById('tbody-per-operator-task').innerHTML = rows.length
+    ? rows.join('')
+    : '<tr><td colspan="4" style="padding:8px; color:#555;">No data</td></tr>';
+}
+
+function renderEpisodes() {
+  const container = document.getElementById('episodes');
+  if (!episodes.length) {
+    container.innerHTML = '<div class="empty"><h2>No episodes yet</h2><p>Run collect_demos.py to start collecting.</p></div>';
+    return;
+  }
+  // Preserve scroll position
+  const scrollTop = container.scrollTop;
+  container.innerHTML = episodes.map(_epCardHTML).join('');
+  container.scrollTop = scrollTop;
+}
+
+document.getElementById('episodes').addEventListener('click', e => {
+  const card = e.target.closest('.episode-card');
+  if (card) selectEpisode(card.dataset.ep);
+});
+
+async function selectEpisode(name) {
+  selectedEpisode = (selectedEpisode === name) ? null : name;
+  renderEpisodes();
+  if (selectedEpisode) {
+    const ep = episodes.find(e => e.id === selectedEpisode);
+    if (ep && ep.task_id) await loadLabelCodes(ep.task_id);
+  }
+}
+
+async function applyLabel(code) {
+  if (!selectedEpisode) {
+    const unlabeled = episodes.find(e => !e.outcome);
+    if (!unlabeled) { showToast('No unlabeled episodes', '#eab308'); return; }
+    // Label codes are per task: if the picked episode's task gives the key
+    // another meaning, show its codes and let the operator press again.
+    const before = JSON.stringify(labelCodes[code]);
+    await selectEpisode(unlabeled.id);
+    if (JSON.stringify(labelCodes[code]) !== before) {
+      showToast(`${unlabeled.id}: its task uses other label codes; press again`, '#eab308');
+      return;
+    }
+  }
+  try {
+    const resp = await fetch('/api/label', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({episode: selectedEpisode, label: code}),
+    });
+    const result = await resp.json();
+    if (result.ok) {
+      showToast(`${selectedEpisode} → ${result.outcome}`, '#22c55e');
+      selectedEpisode = null;
+      loadEpisodes();
+    } else showToast(`Error: ${result.error}`, '#ef4444');
+  } catch (e) { showToast('Network error', '#ef4444'); }
+}
+
+// ── Session Setup ──
+async function loadSessionSetup() {
+  const [masterResp, sessionResp] = await Promise.all([
+    fetch('/api/master'), fetch('/api/session'),
+  ]);
+  masterConfig = await masterResp.json();
+  const session = sessionConfig = await sessionResp.json();
+
+  const taskIds = Object.keys(masterConfig.tasks || {});
+  if (session.task_id && !taskIds.includes(session.task_id)) taskIds.unshift(session.task_id);
+  document.getElementById('cfg-task-id').innerHTML = '<option value="">-- None --</option>' +
+    taskIds.map(t => `<option value="${escapeHtml(t)}">${escapeHtml(t)}</option>`).join('');
+  document.getElementById('cfg-task-id').value = session.task_id || '';
+  document.getElementById('cfg-task-type').value = session.task_type || 'single_stage';
+
+  const ops = (masterConfig.crew || {}).operators || [];
+  const svs = (masterConfig.crew || {}).supervisors || [];
+  for (const selId of ['cfg-teleoperator', 'cfg-safety-watcher']) {
+    const sel = document.getElementById(selId);
+    sel.innerHTML = '<option value="">-- None --</option>' +
+      ops.map(o => `<option value="${escapeHtml(o.id)}">${escapeHtml(o.name)} (${escapeHtml(o.id)})</option>`).join('');
+  }
+  document.getElementById('cfg-supervisor').innerHTML =
+    '<option value="">-- None --</option>' +
+    svs.map(s => `<option value="${escapeHtml(s.id)}">${escapeHtml(s.name)} (${escapeHtml(s.id)})</option>`).join('');
+
+  document.getElementById('cfg-teleoperator').value    = session.teleoperator_id || '';
+  document.getElementById('cfg-safety-watcher').value  = session.safety_watcher_id || '';
+  document.getElementById('cfg-supervisor').value      = session.supervisor_id || '';
+  document.getElementById('cfg-robot-model').value     = session.robot_model || '';
+  document.getElementById('cfg-robot-id').value        = session.robot_id || '';
+  document.getElementById('cfg-sim-id').value          = session.sim_id || '';
+  document.getElementById('cfg-hardware-version').value = session.hardware_version || '';
+  document.getElementById('cfg-software-version').value = session.software_version || '';
+  document.getElementById('cfg-teleoperation-mode').value = session.teleoperation_mode || '';
+}
+
+async function saveSession() {
+  const cfg = {
+    ...sessionConfig,  // keeps fields the form does not show (e.g. subtask_id)
+    task_id:           document.getElementById('cfg-task-id').value,
+    task_type:         document.getElementById('cfg-task-type').value,
+    teleoperator_id:   document.getElementById('cfg-teleoperator').value,
+    safety_watcher_id: document.getElementById('cfg-safety-watcher').value,
+    supervisor_id:     document.getElementById('cfg-supervisor').value,
+    robot_model:       document.getElementById('cfg-robot-model').value,
+    robot_id:          document.getElementById('cfg-robot-id').value,
+    sim_id:            document.getElementById('cfg-sim-id').value,
+    hardware_version:      document.getElementById('cfg-hardware-version').value,
+    software_version:      document.getElementById('cfg-software-version').value,
+    teleoperation_mode:    document.getElementById('cfg-teleoperation-mode').value,
+  };
+  const resp = await fetch('/api/session', {
+    method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(cfg),
+  });
+  const result = await resp.json();
+  if (result.ok) {
+    sessionConfig = result;
+    document.getElementById('session-status').textContent = 'Saved at ' + new Date().toLocaleTimeString();
+    showToast('Session config saved', '#22c55e');
+    if (!selectedEpisode) loadLabelCodes();
+  }
+}
+
+// ── Master Config ──
+async function loadMasterConfig() {
+  const resp = await fetch('/api/master');
+  masterConfig = await resp.json();
+  renderMasterTasks();
+  renderMasterCrew();
+}
+
+function renderMasterTasks() {
+  const tasks = masterConfig.tasks || {};
+  document.getElementById('master-tasks').innerHTML =
+    Object.entries(tasks).map(([tid, task]) => _taskCardHTML(tid, task)).join('');
+}
+
+function _taskCardHTML(tid, task) {
+  const codesHtml = Object.entries(task.label_codes || {}).map(([code, name]) =>
+    `<div class="code-row">
+      <span class="code-num">${escapeHtml(code)}</span>
+      <input class="code-input" value="${escapeHtml(name)}" data-code="${escapeHtml(code)}">
+      <button class="btn btn-danger" style="padding:4px 8px;font-size:12px"
+              onclick="this.parentElement.remove()">x</button>
+    </div>`
+  ).join('');
+  return `<div class="task-card" data-task-id="${escapeHtml(tid)}">
+    <div class="form-row">
+      <div class="form-group" style="flex:0 0 220px">
+        <label>Task ID</label>
+        <input value="${escapeHtml(tid)}" data-field="task-id">
+      </div>
+      <div class="form-group">
+        <label>Task Name</label>
+        <input value="${escapeHtml(task.name)}" data-field="task-name">
+      </div>
+    </div>
+    <label style="font-size:13px;color:#888;margin:8px 0 4px;display:block">Label Codes</label>
+    <div class="code-list">${codesHtml}</div>
+    <button class="btn btn-secondary" style="padding:4px 12px;font-size:12px;margin:4px 0"
+            onclick="addCode(this)">+ Code</button>
+  </div>`;
+}
+
+// Appends a card, so unsaved edits in the other cards are kept.
+function addTask() {
+  const container = document.getElementById('master-tasks');
+  const ids = new Set([...container.querySelectorAll('[data-field="task-id"]')].map(i => i.value));
+  let n = container.children.length + 1;
+  while (ids.has(`new-task-${n}`)) n++;
+  container.insertAdjacentHTML('beforeend',
+    _taskCardHTML(`new-task-${n}`, {name: '', subtasks: {}, label_codes: {'1': 'success'}}));
+}
+
+function addCode(btn) {
+  const list = btn.previousElementSibling;
+  const usedCodes = [...list.querySelectorAll('[data-code]')].map(e => parseInt(e.dataset.code));
+  let nextCode = 1;
+  for (let i = 1; i <= 9; i++) { if (!usedCodes.includes(i)) { nextCode = i; break; } }
+  list.insertAdjacentHTML('beforeend',
+    `<div class="code-row">
+      <span class="code-num">${nextCode}</span>
+      <input class="code-input" value="" data-code="${nextCode}" placeholder="Label description">
+      <button class="btn btn-danger" style="padding:4px 8px;font-size:12px"
+              onclick="this.parentElement.remove()">x</button>
+    </div>`);
+}
+
+function renderMasterCrew() {
+  const crew = masterConfig.crew || {};
+  document.getElementById('master-operators').innerHTML =
+    (crew.operators || []).map(op =>
+      `<div class="crew-row">
+        <input value="${escapeHtml(op.id)}" style="width:80px" data-field="op-id">
+        <input value="${escapeHtml(op.name)}" data-field="op-name" style="flex:1">
+        <button class="btn btn-danger" style="padding:4px 8px;font-size:12px"
+                onclick="this.parentElement.remove()">x</button>
+      </div>`).join('');
+  document.getElementById('master-supervisors').innerHTML =
+    (crew.supervisors || []).map(sv =>
+      `<div class="crew-row">
+        <input value="${escapeHtml(sv.id)}" style="width:80px" data-field="sv-id">
+        <input value="${escapeHtml(sv.name)}" data-field="sv-name" style="flex:1">
+        <button class="btn btn-danger" style="padding:4px 8px;font-size:12px"
+                onclick="this.parentElement.remove()">x</button>
+      </div>`).join('');
+}
+
+function addOperator() {
+  const container = document.getElementById('master-operators');
+  const n = container.children.length + 1;
+  container.insertAdjacentHTML('beforeend',
+    `<div class="crew-row">
+      <input value="OP-${n}" style="width:80px" data-field="op-id">
+      <input value="" data-field="op-name" style="flex:1" placeholder="Name">
+      <button class="btn btn-danger" style="padding:4px 8px;font-size:12px"
+              onclick="this.parentElement.remove()">x</button>
+    </div>`);
+}
+
+function addSupervisor() {
+  const container = document.getElementById('master-supervisors');
+  const n = container.children.length + 1;
+  container.insertAdjacentHTML('beforeend',
+    `<div class="crew-row">
+      <input value="SV-${n}" style="width:80px" data-field="sv-id">
+      <input value="" data-field="sv-name" style="flex:1" placeholder="Name">
+      <button class="btn btn-danger" style="padding:4px 8px;font-size:12px"
+              onclick="this.parentElement.remove()">x</button>
+    </div>`);
+}
+
+async function saveMaster() {
+  const tasks = {};
+  document.querySelectorAll('.task-card').forEach(card => {
+    const tid  = card.querySelector('[data-field="task-id"]').value;
+    const name = card.querySelector('[data-field="task-name"]').value;
+    const codes = {};
+    card.querySelectorAll('.code-row [data-code]').forEach(input => {
+      codes[input.dataset.code] = input.value;
+    });
+    tasks[tid] = {name, subtasks: {}, label_codes: codes};
+  });
+  const operators = [...document.querySelectorAll('#master-operators .crew-row')].map(row => ({
+    id:   row.querySelector('[data-field="op-id"]').value,
+    name: row.querySelector('[data-field="op-name"]').value,
+  }));
+  const supervisors = [...document.querySelectorAll('#master-supervisors .crew-row')].map(row => ({
+    id:   row.querySelector('[data-field="sv-id"]').value,
+    name: row.querySelector('[data-field="sv-name"]').value,
+  }));
+  const resp = await fetch('/api/master', {
+    method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({tasks, crew: {operators, supervisors}}),
+  });
+  const result = await resp.json();
+  if (result.ok) {
+    showToast('Master config saved', '#22c55e');
+    document.getElementById('master-status').textContent = 'Saved at ' + new Date().toLocaleTimeString();
+  }
+}
+
+// ── Utilities ──
+function showToast(msg, color) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.style.background = color || '#22c55e';
+  t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// Digit shortcuts label only on the Episodes tab, and only with a code the label bar shows.
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
+  if (document.querySelector('.tab.active')?.dataset?.tab !== 'episodes') return;
+  if (/^[0-9]$/.test(e.key) && e.key in labelCodes) applyLabel(Number(e.key));
+});
+
+// ── Annotation Ratings ──
+async function loadAnnotationRatings() {
+  try {
+    const resp = await fetch('/api/annotation_ratings');
+    const data = await resp.json();
+    const rows = data.rows || [];
+    const tbody = document.getElementById('tbody-ratings');
+
+    if (!rows.length) {
+      const hint = 'No rated episodes in the data directory.';
+      tbody.innerHTML = `<tr><td colspan="6" style="padding:16px;color:#888;">${hint}</td></tr>`;
+    } else {
+      const total = rows.reduce((s, r) => s + r.count, 0);
+      tbody.innerHTML = rows.map(r => {
+        const avg = r.avg.toFixed(2);
+        const avgColor = r.avg >= 4.9 ? '#22c55e' : r.avg >= 4.7 ? '#86efac' : r.avg >= 4.5 ? '#fcd34d' : '#f87171';
+        const distBar = Object.entries(r.dist).sort(([a],[b]) => +a - +b).map(([star, n]) => {
+          const w = Math.round((n / r.count) * 100);
+          const c = star === '5' ? '#22c55e' : star === '4' ? '#3b82f6' : '#f87171';
+          return `<span title="${star}★: ${n}" style="display:inline-block;width:${w}%;height:10px;background:${c};border-radius:2px;margin-right:1px;"></span>`;
+        }).join('');
+        return `<tr style="border-bottom:1px solid #1e2030;">
+          <td style="padding:8px 12px; color:#fff; font-weight:600;">${escapeHtml(r.task_name)}</td>
+          <td style="padding:8px 12px; text-align:right; color:#ccc;">${r.count}</td>
+          <td style="padding:8px 12px; text-align:right; font-weight:700; color:${avgColor};">${avg}</td>
+          <td style="padding:8px 12px; text-align:right; color:#93c5fd;">${r.dist['4'] || 0}</td>
+          <td style="padding:8px 12px; text-align:right; color:#86efac;">${r.dist['5'] || 0}</td>
+          <td style="padding:8px 12px; min-width:120px;">${distBar}</td>
+        </tr>`;
+      }).join('');
+    }
+
+    const total = rows.reduce((s, r) => s + r.count, 0);
+    document.getElementById('ratings-updated').textContent =
+      `${total} rated episodes · refreshed ${new Date().toLocaleTimeString()}`;
+  } catch (e) {
+    document.getElementById('tbody-ratings').innerHTML =
+      '<tr><td colspan="6" style="padding:16px;color:#ef4444;">Failed to load ratings.</td></tr>';
+  }
+}
+
+// ── Timing / Duration ──
+let _timingChart = null;
+
+const _HIST_COLORS = [
+  'rgba(59,130,246,0.75)',  'rgba(34,197,94,0.75)',  'rgba(249,115,22,0.75)',
+  'rgba(168,85,247,0.75)',  'rgba(236,72,153,0.75)', 'rgba(20,184,166,0.75)',
+  'rgba(234,179,8,0.75)',   'rgba(239,68,68,0.75)',  'rgba(99,102,241,0.75)',
+  'rgba(251,146,60,0.75)',
+];
+
+function _buildHistogram(rows, numBins = 25) {
+  const allSteps = rows.flatMap(r => r.steps);
+  if (!allSteps.length) return null;
+  const minV = Math.min(...allSteps);
+  const maxV = Math.max(...allSteps);
+  if (minV >= maxV) return null;
+  const binSize = Math.ceil((maxV - minV) / numBins);
+  const labels = Array.from({length: numBins}, (_, i) => String(minV + i * binSize));
+  const datasets = rows.map((row, i) => {
+    const counts = new Array(numBins).fill(0);
+    row.steps.forEach(s => {
+      counts[Math.min(Math.floor((s - minV) / binSize), numBins - 1)]++;
+    });
+    return {
+      label: row.task_name.replace(/^ib-/, ''),
+      data: counts,
+      backgroundColor: _HIST_COLORS[i % _HIST_COLORS.length],
+      borderWidth: 0,
+      barPercentage: 1.0,
+      categoryPercentage: 1.0,
+    };
+  });
+  return { labels, datasets, binSize };
+}
+
+async function loadTimingStats() {
+  try {
+    const resp = await fetch('/api/episode_durations');
+    const data = await resp.json();
+    const rows = data.rows || [];
+
+    const tbody = document.getElementById('tbody-timing');
+    if (!rows.length) {
+      tbody.innerHTML = '<tr><td colspan="5" style="padding:16px;color:#888;">No successful episodes found locally.</td></tr>';
+    } else {
+      tbody.innerHTML = rows.map(r =>
+        `<tr style="border-bottom:1px solid #1e2030;">
+          <td style="padding:8px 12px; color:#fff; font-weight:600;">${escapeHtml(r.task_name)}</td>
+          <td style="padding:8px 12px; text-align:right; color:#ccc;">${r.count}</td>
+          <td style="padding:8px 12px; text-align:right; color:#93c5fd;">${r.min}</td>
+          <td style="padding:8px 12px; text-align:right; color:#e0e0e0; font-weight:600;">${r.mean} ± ${r.stdev}</td>
+          <td style="padding:8px 12px; text-align:right; color:#f87171;">${r.max}</td>
+        </tr>`
+      ).join('');
+    }
+
+    const wrap = document.getElementById('timing-chart-wrap');
+    const canvas = document.getElementById('timing-chart');
+    const hist = _buildHistogram(rows);
+    const chartLoaded = typeof Chart !== 'undefined';
+    document.getElementById('timing-chart-missing').style.display = hist && !chartLoaded ? '' : 'none';
+    if (hist && canvas && chartLoaded) {
+      wrap.style.display = '';
+      if (_timingChart) { _timingChart.destroy(); _timingChart = null; }
+      _timingChart = new Chart(canvas.getContext('2d'), {
+        type: 'bar',
+        data: hist,
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { labels: { color: '#aaa', font: { size: 11 }, boxWidth: 14 } },
+            tooltip: {
+              callbacks: {
+                title: items => `~${items[0].label} steps (bin width ${hist.binSize})`,
+                label: item  => ` ${item.dataset.label}: ${item.raw} episodes`,
+              },
+            },
+          },
+          scales: {
+            x: {
+              stacked: true,
+              ticks: { color: '#666', font: { size: 10 }, maxTicksLimit: 14 },
+              grid: { color: '#1e2030' },
+              title: { display: true, text: 'Steps per episode', color: '#666', font: { size: 11 } },
+            },
+            y: {
+              stacked: true,
+              ticks: { color: '#666' },
+              grid: { color: '#222' },
+              title: { display: true, text: 'Episode count', color: '#666', font: { size: 11 } },
+            },
+          },
+        },
+      });
+    } else {
+      wrap.style.display = 'none';
+    }
+
+    const total = rows.reduce((s, r) => s + r.count, 0);
+    document.getElementById('timing-updated').textContent =
+      `${total} successful episodes · refreshed ${new Date().toLocaleTimeString()}`;
+  } catch (e) {
+    document.getElementById('tbody-timing').innerHTML =
+      '<tr><td colspan="5" style="padding:16px;color:#ef4444;">Failed to load timing data.</td></tr>';
+  }
+}
+
+loadLabelCodes();
+loadEpisodes();
+setInterval(loadEpisodes, 15000);
+setInterval(() => {
+  const active = document.querySelector('.tab.active')?.dataset?.tab;
+  if (active === 'ratings') loadAnnotationRatings();
+  if (active === 'timing')  loadTimingStats();
+}, 15000);
+</script>
+</body>
+</html>

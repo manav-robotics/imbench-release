@@ -1,0 +1,114 @@
+<mujoco model="covered_rack_2story">
+  <compiler angle="radian"/>
+  <worldbody>
+    <body>
+      <body name="object" pos="0 0 0">
+        <!--
+          Two-story covered rack.
+          Origin at bottom-centre of base plate.
+          Outer: 0.32 m wide (x: ±0.16), 0.20 m deep (y: ±0.10),
+                 0.30 m tall (z: 0..0.30).
+          Two compartments separated by a mid-shelf at z=0.15.
+          Each compartment: inner height ~0.13 m (enough for Panda gripper).
+          Open face at -y (front) — full-width cutout on the front panel.
+          The front panel is replaced by TWO half-height panels (top and
+          bottom halves) so that each story's opening is clearly defined.
+
+          Story 1 (bottom): z = 0.01 .. 0.14
+          Story 2 (top):    z = 0.16 .. 0.29
+        -->
+
+        <!-- Base plate -->
+        <geom name="vis_base" type="box" size="0.16 0.10 0.005"
+              pos="0 0 0.005" rgba="0.50 0.35 0.20 1"
+              group="1" contype="0" conaffinity="0"/>
+        <geom name="col_base" type="box" size="0.16 0.10 0.005"
+              pos="0 0 0.005" rgba="0.50 0.35 0.20 1"
+              group="0"/>
+
+        <!-- Back panel (full height) -->
+        <geom name="vis_back" type="box" size="0.16 0.005 0.145"
+              pos="0 0.095 0.155" rgba="0.45 0.30 0.15 1"
+              group="1" contype="0" conaffinity="0"/>
+        <geom name="col_back" type="box" size="0.16 0.005 0.145"
+              pos="0 0.095 0.155" rgba="0.45 0.30 0.15 1"
+              group="0"/>
+
+        <!-- Left wall (full height) -->
+        <geom name="vis_left" type="box" size="0.005 0.10 0.145"
+              pos="-0.155 0 0.155" rgba="0.50 0.35 0.20 1"
+              group="1" contype="0" conaffinity="0"/>
+        <geom name="col_left" type="box" size="0.005 0.10 0.145"
+              pos="-0.155 0 0.155" rgba="0.50 0.35 0.20 1"
+              group="0"/>
+
+        <!-- Right wall (full height) -->
+        <geom name="vis_right" type="box" size="0.005 0.10 0.145"
+              pos="0.155 0 0.155" rgba="0.50 0.35 0.20 1"
+              group="1" contype="0" conaffinity="0"/>
+        <geom name="col_right" type="box" size="0.005 0.10 0.145"
+              pos="0.155 0 0.155" rgba="0.50 0.35 0.20 1"
+              group="0"/>
+
+        <!-- Top panel -->
+        <geom name="vis_top" type="box" size="0.16 0.10 0.005"
+              pos="0 0 0.295" rgba="0.45 0.30 0.15 1"
+              group="1" contype="0" conaffinity="0"/>
+        <geom name="col_top" type="box" size="0.16 0.10 0.005"
+              pos="0 0 0.295" rgba="0.45 0.30 0.15 1"
+              group="0"/>
+
+        <!-- Mid-shelf (horizontal divider) -->
+        <geom name="vis_shelf" type="box" size="0.155 0.10 0.005"
+              pos="0 0 0.155" rgba="0.55 0.40 0.20 1"
+              group="1" contype="0" conaffinity="0"/>
+        <geom name="col_shelf" type="box" size="0.155 0.10 0.005"
+              pos="0 0 0.155" rgba="0.55 0.40 0.20 1"
+              group="0"/>
+
+        <!--
+          Front face: two stories each have a horizontal cutout (open face)
+          so the gripper can enter. We model the front as narrow top/bottom
+          strips per story rather than full panels, leaving the central
+          opening free.
+          Story 1 opening: z = 0.01..0.15 (full open, no front panel)
+          Story 2 opening: z = 0.16..0.30 (full open, no front panel)
+          So the front face is: just corner pillars for structural integrity.
+        -->
+        <!-- Front-left pillar bottom -->
+        <geom name="vis_fl_bot" type="box" size="0.015 0.005 0.065"
+              pos="-0.145 -0.095 0.075" rgba="0.45 0.30 0.15 1"
+              group="1" contype="0" conaffinity="0"/>
+        <geom name="col_fl_bot" type="box" size="0.015 0.005 0.065"
+              pos="-0.145 -0.095 0.075" rgba="0.45 0.30 0.15 1"
+              group="0"/>
+        <!-- Front-right pillar bottom -->
+        <geom name="vis_fr_bot" type="box" size="0.015 0.005 0.065"
+              pos="0.145 -0.095 0.075" rgba="0.45 0.30 0.15 1"
+              group="1" contype="0" conaffinity="0"/>
+        <geom name="col_fr_bot" type="box" size="0.015 0.005 0.065"
+              pos="0.145 -0.095 0.075" rgba="0.45 0.30 0.15 1"
+              group="0"/>
+        <!-- Front-left pillar top -->
+        <geom name="vis_fl_top" type="box" size="0.015 0.005 0.065"
+              pos="-0.145 -0.095 0.225" rgba="0.45 0.30 0.15 1"
+              group="1" contype="0" conaffinity="0"/>
+        <geom name="col_fl_top" type="box" size="0.015 0.005 0.065"
+              pos="-0.145 -0.095 0.225" rgba="0.45 0.30 0.15 1"
+              group="0"/>
+        <!-- Front-right pillar top -->
+        <geom name="vis_fr_top" type="box" size="0.015 0.005 0.065"
+              pos="0.145 -0.095 0.225" rgba="0.45 0.30 0.15 1"
+              group="1" contype="0" conaffinity="0"/>
+        <geom name="col_fr_top" type="box" size="0.015 0.005 0.065"
+              pos="0.145 -0.095 0.225" rgba="0.45 0.30 0.15 1"
+              group="0"/>
+
+        <inertial pos="0 0 0.15" mass="4.0" diaginertia="0.05 0.05 0.05"/>
+      </body>
+      <site rgba="0 0 0 0" size="0.005" pos="0 0 0"    name="bottom_site"/>
+      <site rgba="0 0 0 0" size="0.005" pos="0 0 0.30" name="top_site"/>
+      <site rgba="0 0 0 0" size="0.005" pos="0.16 0.10 0" name="horizontal_radius_site"/>
+    </body>
+  </worldbody>
+</mujoco>

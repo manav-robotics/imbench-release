@@ -1,0 +1,133 @@
+task_id: ib-p6-stack-collapse-recovery-v1
+description: >-
+  Puzzle: three cubes of slightly increasing side length start stacked
+  largest-on-bottom. The tower is always knocked over a few steps into
+  the episode — half the time only the top cube is kicked off, half
+  the time both upper cubes are. Restack the cubes into a single tower
+  (any order) and hold it stable.
+max_episode_steps: 2000
+reward_type: sparse
+action_mode: cartesian_delta
+control_freq: 100
+
+scene:
+  table:
+    full_size: [0.5, 0.5, 0.05]
+    height: 0.8
+    offset: null
+  robot_offset: null
+
+# Initial placement sampler (read by SingleArmBase); reset() then places
+# every object explicitly.
+placement:
+  center: null
+  x_range: 0.15
+  y_range: 0.15
+
+randomization:
+  object_color:
+    enabled: false
+  lighting:
+    position: true
+    color: false
+
+task:
+  stable_steps: 100
+  collapse:
+    # Probability that the kick hits BOTH upper cubes (vs. only the
+    # top cube). The collapse itself fires every episode.
+    both_prob: 0.5
+    # Control-step at which the collapse fires (after the cubes have
+    # had a moment to settle visually).
+    step: 5
+    # Horizontal kick speeds (m/s). The top cube gets ``top_speed`` in
+    # both modes; in "both" mode the middle cube also gets
+    # ``middle_speed`` in a direction ~120° away so the upper two cubes
+    # diverge. ``middle_speed`` must slide the middle cube (carrying the
+    # top one) off the bottom cube without launching it off the table.
+    top_speed: 0.9
+    middle_speed: 1.1
+  placement:
+    # Per-episode XY jitter for the base of the tower (table-relative,
+    # symmetric around the centre).
+    xy_range: [0.08, 0.10]
+
+task_conditions:
+  success:
+    score_threshold: 1.0
+  failure:
+    floor_z_threshold: 0.05
+
+recording:
+  save_freq:
+    proprio: 100
+    force_torque: 50
+    object_state: 50
+    cameras: 25
+    tactile: 50
+  save:
+    action: true
+    reward: true
+    task_score: true
+    joint_positions: true
+    ee_poses: true
+
+controller:
+  type: OSC_POSE
+  robot: Panda
+  kp: 200
+  damping_ratio: 1
+  impedance_mode: fixed
+  uncouple_pos_ori: true
+  input_type: delta
+  input_ref_frame: base
+
+obs:
+  proprio:
+    enabled: true
+    keys:
+    - robot0_eef_pos
+    - robot0_eef_quat
+    - robot0_gripper_qpos
+    - robot0_joint_pos
+    - robot0_joint_vel
+    save: true
+  object_state:
+    enabled: true
+    save: true
+  cameras:
+    gripper_cam:
+      enabled: true
+      robosuite_name: robot0_eye_in_hand
+      width: 640
+      height: 480
+      depth: false
+      save: true
+    ego_cam:
+      enabled: true
+      robosuite_name: robot0_robotview
+      width: 640
+      height: 480
+      depth: false
+      save: true
+    exo_bird_cam:
+      enabled: true
+      robosuite_name: birdview
+      width: 640
+      height: 480
+      depth: false
+      save: true
+  force_torque:
+    enabled: true
+    keys:
+    - robot0_ft_sensor
+    save: true
+  tactile:
+    enabled: true
+    fingers:
+    - right
+    - left
+    rows: 8
+    cols: 8
+    spacing: 0.001
+    save: true

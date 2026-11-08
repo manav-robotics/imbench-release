@@ -1,0 +1,28 @@
+task_id: ib-m-freeform-v1
+description: >-
+  Configurable table-top sandbox — robots, primitive objects and weighted
+  goals are given as constructor arguments.
+max_episode_steps: 1000
+reward_type: sparse
+action_mode: cartesian_delta
+control_freq: 20
+
+# Controller and cameras come from the constructor (controller=,
+# camera_names=, camera_size=); see imbench/tasks/custom/freeform_v1.py.
+obs:
+  proprio:
+    enabled: true
+    save: true
+    keys:
+      - robot0_eef_pos
+      - robot0_eef_quat
+      - robot0_gripper_qpos
+      - robot0_joint_pos
+  object_state:
+    enabled: false
+    save: false
+  force_torque:
+    enabled: false
+    save: false
+  tactile:
+    enabled: false

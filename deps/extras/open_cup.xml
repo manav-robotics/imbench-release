@@ -1,0 +1,147 @@
+<mujoco model="open_cup">
+  <asset>
+    <mesh name="cup_mesh" file="open_cup.stl"/>
+  </asset>
+  <worldbody>
+    <body>
+      <body name="object">
+        <geom name="cup_vis" type="mesh" mesh="cup_mesh"
+              rgba="0.4 0.55 0.7 1.0" group="1"
+              contype="0" conaffinity="0" mass="0.0001"/>
+        <geom name="cup_bottom" type="cylinder"
+              pos="0 0 0.0020" size="0.039 0.0020"
+              rgba="0 0 0 0" density="300"
+              friction="0.3 0.005 0.0001" group="0"
+              contype="1" conaffinity="1"/>
+        <!-- Smooth glazed interior (friction 0.3): with 0.8 the 4x4x6 cm
+             cuboid wedges across the 7 cm bore and won't pour out. -->
+        <geom name="cup_wall_0" type="box"
+              pos="0.037000 0.000000 0.0520"
+              size="0.0020 0.00722 0.0480"
+              euler="0 0 0"
+              rgba="0 0 0 0" density="300"
+              friction="0.3 0.005 0.0001" group="0"
+              contype="1" conaffinity="1"/>
+        <geom name="cup_wall_1" type="box"
+              pos="0.034184 0.014159 0.0520"
+              size="0.0020 0.00722 0.0480"
+              euler="0 0 0.392699"
+              rgba="0 0 0 0" density="300"
+              friction="0.3 0.005 0.0001" group="0"
+              contype="1" conaffinity="1"/>
+        <geom name="cup_wall_2" type="box"
+              pos="0.026163 0.026163 0.0520"
+              size="0.0020 0.00722 0.0480"
+              euler="0 0 0.785398"
+              rgba="0 0 0 0" density="300"
+              friction="0.3 0.005 0.0001" group="0"
+              contype="1" conaffinity="1"/>
+        <geom name="cup_wall_3" type="box"
+              pos="0.014159 0.034184 0.0520"
+              size="0.0020 0.00722 0.0480"
+              euler="0 0 1.178097"
+              rgba="0 0 0 0" density="300"
+              friction="0.3 0.005 0.0001" group="0"
+              contype="1" conaffinity="1"/>
+        <geom name="cup_wall_4" type="box"
+              pos="0.000000 0.037000 0.0520"
+              size="0.0020 0.00722 0.0480"
+              euler="0 0 1.570796"
+              rgba="0 0 0 0" density="300"
+              friction="0.3 0.005 0.0001" group="0"
+              contype="1" conaffinity="1"/>
+        <geom name="cup_wall_5" type="box"
+              pos="-0.014159 0.034184 0.0520"
+              size="0.0020 0.00722 0.0480"
+              euler="0 0 1.963495"
+              rgba="0 0 0 0" density="300"
+              friction="0.3 0.005 0.0001" group="0"
+              contype="1" conaffinity="1"/>
+        <geom name="cup_wall_6" type="box"
+              pos="-0.026163 0.026163 0.0520"
+              size="0.0020 0.00722 0.0480"
+              euler="0 0 2.356194"
+              rgba="0 0 0 0" density="300"
+              friction="0.3 0.005 0.0001" group="0"
+              contype="1" conaffinity="1"/>
+        <geom name="cup_wall_7" type="box"
+              pos="-0.034184 0.014159 0.0520"
+              size="0.0020 0.00722 0.0480"
+              euler="0 0 2.748894"
+              rgba="0 0 0 0" density="300"
+              friction="0.3 0.005 0.0001" group="0"
+              contype="1" conaffinity="1"/>
+        <geom name="cup_wall_8" type="box"
+              pos="-0.037000 0.000000 0.0520"
+              size="0.0020 0.00722 0.0480"
+              euler="0 0 3.141593"
+              rgba="0 0 0 0" density="300"
+              friction="0.3 0.005 0.0001" group="0"
+              contype="1" conaffinity="1"/>
+        <geom name="cup_wall_9" type="box"
+              pos="-0.034184 -0.014159 0.0520"
+              size="0.0020 0.00722 0.0480"
+              euler="0 0 3.534292"
+              rgba="0 0 0 0" density="300"
+              friction="0.3 0.005 0.0001" group="0"
+              contype="1" conaffinity="1"/>
+        <geom name="cup_wall_10" type="box"
+              pos="-0.026163 -0.026163 0.0520"
+              size="0.0020 0.00722 0.0480"
+              euler="0 0 3.926991"
+              rgba="0 0 0 0" density="300"
+              friction="0.3 0.005 0.0001" group="0"
+              contype="1" conaffinity="1"/>
+        <geom name="cup_wall_11" type="box"
+              pos="-0.014159 -0.034184 0.0520"
+              size="0.0020 0.00722 0.0480"
+              euler="0 0 4.319690"
+              rgba="0 0 0 0" density="300"
+              friction="0.3 0.005 0.0001" group="0"
+              contype="1" conaffinity="1"/>
+        <geom name="cup_wall_12" type="box"
+              pos="-0.000000 -0.037000 0.0520"
+              size="0.0020 0.00722 0.0480"
+              euler="0 0 4.712389"
+              rgba="0 0 0 0" density="300"
+              friction="0.3 0.005 0.0001" group="0"
+              contype="1" conaffinity="1"/>
+        <geom name="cup_wall_13" type="box"
+              pos="0.014159 -0.034184 0.0520"
+              size="0.0020 0.00722 0.0480"
+              euler="0 0 5.105088"
+              rgba="0 0 0 0" density="300"
+              friction="0.3 0.005 0.0001" group="0"
+              contype="1" conaffinity="1"/>
+        <geom name="cup_wall_14" type="box"
+              pos="0.026163 -0.026163 0.0520"
+              size="0.0020 0.00722 0.0480"
+              euler="0 0 5.497787"
+              rgba="0 0 0 0" density="300"
+              friction="0.3 0.005 0.0001" group="0"
+              contype="1" conaffinity="1"/>
+        <geom name="cup_wall_15" type="box"
+              pos="0.034184 -0.014159 0.0520"
+              size="0.0020 0.00722 0.0480"
+              euler="0 0 5.890486"
+              rgba="0 0 0 0" density="300"
+              friction="0.3 0.005 0.0001" group="0"
+              contype="1" conaffinity="1"/>
+        <geom name="cup_handle" type="box"
+              pos="0.064 0.0 0.05"
+              size="0.025 0.01 0.02"
+              rgba="0 0 0 0" density="300"
+              friction="0.8 0.005 0.0001" group="0"
+              contype="1" conaffinity="1"/>
+        <geom name="cup_handle_vis" type="box"
+              pos="0.064 0.0 0.05"
+              size="0.025 0.01 0.02"
+              rgba="0.8 0.1 0.1 1.0" group="1"
+              contype="0" conaffinity="0" mass="0.0001"/>
+      </body>
+      <site name="bottom_site" pos="0 0 0" size="0.001" rgba="0 0 0 0"/>
+      <site name="top_site" pos="0 0 0.10" size="0.001" rgba="0 0 0 0"/>
+      <site name="horizontal_radius_site" pos="0.089 0 0" size="0.001" rgba="0 0 0 0"/>
+    </body>
+  </worldbody>
+</mujoco>

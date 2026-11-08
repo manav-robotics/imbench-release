@@ -1,0 +1,92 @@
+<mujoco model="rect_slot">
+  <compiler angle="radian"/>
+  <worldbody>
+    <body>
+      <body name="object" pos="0 0 0">
+        <!--
+          Horizontal rectangular through-slot on four legs.
+          Origin at the bottom of the legs (ground level).
+
+          Layer stack (bottom → top):
+            - 4 corner legs : 0.02 x 0.02 x 0.30 m each
+            - Base plate    : 0.20 x 0.20 x 0.01 m  (z centre 0.305)
+            - Left pillar   : 0.20 x 0.083 x 0.03 m (z centre 0.325)
+            - Right pillar  : 0.20 x 0.083 x 0.03 m (z centre 0.325)
+            - Top plate     : 0.20 x 0.20 x 0.01 m  (z centre 0.345)
+
+          Fixture total height: 0.35 m. The rectangular slot between the
+          two pillars spans x ∈ ±0.10, y ∈ ±0.017, z ∈ [0.31, 0.34] —
+          open on both ±X ends, no geom inside, so it stays
+          collision-free. With a 24 × 24 mm peg that leaves ~5 mm of
+          lateral clearance per side (moderately tight).
+        -->
+
+        <!-- Four corner legs, wooden dark-brown -->
+        <geom name="leg_px_py_v" type="box" size="0.01 0.01 0.15"
+              pos=" 0.09  0.09 0.15" rgba="0.35 0.22 0.12 1"
+              group="1" contype="0" conaffinity="0"/>
+        <geom name="leg_px_py_c" type="box" size="0.01 0.01 0.15"
+              pos=" 0.09  0.09 0.15" rgba="0.35 0.22 0.12 1"
+              group="0" friction="0.6 0.005 0.0001"/>
+
+        <geom name="leg_px_ny_v" type="box" size="0.01 0.01 0.15"
+              pos=" 0.09 -0.09 0.15" rgba="0.35 0.22 0.12 1"
+              group="1" contype="0" conaffinity="0"/>
+        <geom name="leg_px_ny_c" type="box" size="0.01 0.01 0.15"
+              pos=" 0.09 -0.09 0.15" rgba="0.35 0.22 0.12 1"
+              group="0" friction="0.6 0.005 0.0001"/>
+
+        <geom name="leg_nx_py_v" type="box" size="0.01 0.01 0.15"
+              pos="-0.09  0.09 0.15" rgba="0.35 0.22 0.12 1"
+              group="1" contype="0" conaffinity="0"/>
+        <geom name="leg_nx_py_c" type="box" size="0.01 0.01 0.15"
+              pos="-0.09  0.09 0.15" rgba="0.35 0.22 0.12 1"
+              group="0" friction="0.6 0.005 0.0001"/>
+
+        <geom name="leg_nx_ny_v" type="box" size="0.01 0.01 0.15"
+              pos="-0.09 -0.09 0.15" rgba="0.35 0.22 0.12 1"
+              group="1" contype="0" conaffinity="0"/>
+        <geom name="leg_nx_ny_c" type="box" size="0.01 0.01 0.15"
+              pos="-0.09 -0.09 0.15" rgba="0.35 0.22 0.12 1"
+              group="0" friction="0.6 0.005 0.0001"/>
+
+        <!-- Base plate -->
+        <geom name="base_v" type="box" size="0.10 0.10 0.005"
+              pos="0 0 0.305" rgba="0.50 0.33 0.18 1"
+              group="1" contype="0" conaffinity="0"/>
+        <geom name="base_c" type="box" size="0.10 0.10 0.005"
+              pos="0 0 0.305" rgba="0.50 0.33 0.18 1"
+              group="0" friction="0.6 0.005 0.0001"/>
+
+        <!-- Left pillar (-Y side of the slot) -->
+        <geom name="left_v" type="box" size="0.10 0.0415 0.015"
+              pos="0 -0.0585 0.325" rgba="0.58 0.40 0.22 1"
+              group="1" contype="0" conaffinity="0"/>
+        <geom name="left_c" type="box" size="0.10 0.0415 0.015"
+              pos="0 -0.0585 0.325" rgba="0.58 0.40 0.22 1"
+              group="0" friction="0.6 0.005 0.0001"/>
+
+        <!-- Right pillar (+Y side of the slot) -->
+        <geom name="right_v" type="box" size="0.10 0.0415 0.015"
+              pos="0 0.0585 0.325" rgba="0.58 0.40 0.22 1"
+              group="1" contype="0" conaffinity="0"/>
+        <geom name="right_c" type="box" size="0.10 0.0415 0.015"
+              pos="0 0.0585 0.325" rgba="0.58 0.40 0.22 1"
+              group="0" friction="0.6 0.005 0.0001"/>
+
+        <!-- Top plate (ceiling of the slot) -->
+        <geom name="top_v" type="box" size="0.10 0.10 0.005"
+              pos="0 0 0.345" rgba="0.50 0.33 0.18 1"
+              group="1" contype="0" conaffinity="0"/>
+        <geom name="top_c" type="box" size="0.10 0.10 0.005"
+              pos="0 0 0.345" rgba="0.50 0.33 0.18 1"
+              group="0" friction="0.6 0.005 0.0001"/>
+
+        <inertial pos="0 0 0.175" mass="3.0" diaginertia="0.08 0.08 0.03"/>
+      </body>
+      <site name="bottom_site" pos="0 0 0" size="0.001" rgba="0 0 0 0"/>
+      <site name="top_site" pos="0 0 0.35" size="0.001" rgba="0 0 0 0"/>
+      <site name="horizontal_radius_site" pos="0.10 0.10 0" size="0.001" rgba="0 0 0 0"/>
+    </body>
+  </worldbody>
+</mujoco>

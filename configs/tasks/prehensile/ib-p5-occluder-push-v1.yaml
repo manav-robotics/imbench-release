@@ -1,0 +1,143 @@
+task_id: ib-p5-occluder-push-v1
+description: >-
+  Single arm: three flat plates in a row (a quarter of seeds), or 3-4 covers of different kinds (flat plates, upside-down
+  cups, hinged flaps, spring-loaded flaps, boxes with sliding lids) hide
+  the red cube, coloured distractor cubes or nothing. Remove covers until
+  the red cube shows, then place it on the green patch.
+max_episode_steps: 12000
+reward_type: sparse
+action_mode: cartesian_delta
+control_freq: 100
+
+# ── Scene geometry ─────────────────────────────────────────────────
+scene:
+  table:
+    full_size: [0.7, 0.7, 0.05]
+    height: 0.8
+    offset: null
+  robot_offset: null
+
+# Initial placement sampler (read by SingleArmBase); reset() then places
+# every object explicitly.
+placement:
+  center: null
+  x_range: 0.20
+  y_range: 0.20
+  ensure_valid_placement: false
+
+# ── Domain randomization (re-sampled every reset) ─────────────────
+randomization:
+  object_color:
+    enabled: true
+  lighting:
+    position: true
+    color: false
+
+# ── Task-specific parameters ───────────────────────────────────────
+task:
+  patch_pos: [-0.20, 0.0]
+  patch_half: 0.05
+  placement_threshold: 0.04
+  cube_size: 0.02
+  distractor_colors: [blue, yellow, purple, cyan, white]
+  covers:
+    original_fraction: 0.25  # share of seeds with the original scene: 3 plates in a row on red/blue/yellow cubes
+    count: [3, 4]
+    kinds: [plate, cup, flap, spring_flap, box]
+    min_kinds: 2
+    empty: [0, 2]            # plates always hold a cube
+    flap_open_limit_deg: 110
+    flap_damping: 0.01
+    spring:
+      stiffness: 0.08        # N m / rad, pulling the flap shut below the latch
+      latch_deg: 100
+    body_gap: 0.02           # min gap between cover footprints (m)
+    zone_gap: 0.01           # min gap around the room a cover needs to be removed
+    reach: 0.76              # footprints and fingertip points within [reach_min, reach] of the
+    reach_min: 0.27          # robot base (top-down reach at table height, measured)
+    reach_high: 0.66         # where the hand passes ~15 cm up (past a flap's hinge)
+    setdown_min_reach: 0.36  # a lifted cup is set down in [setdown_min_reach, reach_high] from the
+                             # base, on a path clear of open flaps
+    patch_keepout: 0.09
+    layout_tries: 5000
+    redraw_kinds_every: 500   # a mix of large covers that will not fit is redrawn (same count)
+
+task_conditions:
+  success:
+    score_threshold: 1.0
+  failure:
+    floor_z_threshold: 0.05
+
+recording:
+  save_freq:
+    proprio: 100
+    force_torque: 50
+    object_state: 50
+    cameras: 25
+    tactile: 50
+  save:
+    action: true
+    reward: true
+    task_score: true
+    joint_positions: true
+    ee_poses: true
+
+controller:
+  type: OSC_POSE
+  robot: Panda
+  kp: 200
+  damping_ratio: 1
+  impedance_mode: fixed
+  uncouple_pos_ori: true
+  input_type: delta
+  input_ref_frame: base
+
+obs:
+  proprio:
+    enabled: true
+    keys:
+    - robot0_eef_pos
+    - robot0_eef_quat
+    - robot0_gripper_qpos
+    - robot0_joint_pos
+    - robot0_joint_vel
+    save: true
+  object_state:
+    enabled: true
+    save: true
+  cameras:
+    gripper_cam:
+      enabled: true
+      robosuite_name: robot0_eye_in_hand
+      width: 640
+      height: 480
+      depth: false
+      save: true
+    ego_cam:
+      enabled: true
+      robosuite_name: robot0_robotview
+      width: 640
+      height: 480
+      depth: false
+      save: true
+    exo_bird_cam:
+      enabled: true
+      robosuite_name: birdview
+      width: 640
+      height: 480
+      depth: false
+      save: true
+  force_torque:
+    enabled: true
+    keys:
+    - robot0_ft_sensor
+    save: true
+  tactile:
+    enabled: true
+    fingers:
+    - right
+    - left
+    rows: 8
+    cols: 8
+    spacing: 0.001
+    save: true

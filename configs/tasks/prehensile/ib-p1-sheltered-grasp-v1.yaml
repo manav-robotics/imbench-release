@@ -1,0 +1,147 @@
+task_id: ib-p1-sheltered-grasp-v1
+description: >-
+  Single arm: a cube sits inside a small covered rack whose open face is
+  perpendicular to the gripper. Reach into the rack compartment from the
+  side, grasp the cube, extract it, and place it in the tray. Each episode
+  samples a left/right reflection of the full rack, cube and tray layout.
+max_episode_steps: 7000
+reward_type: sparse
+action_mode: cartesian_delta
+control_freq: 100
+
+# ── Scene geometry ─────────────────────────────────────────────────
+scene:
+  table:
+    full_size: [0.8, 0.8, 0.05]   # enlarged to fit 2-story rack (0.32×0.20 m footprint)
+    height: 0.8
+    offset: null
+  robot_offset: null
+
+# Initial placement sampler (read by SingleArmBase); reset() then places
+# every object explicitly.
+placement:
+  center: null
+  x_range: 0.12
+  y_range: 0.12
+
+# ── Domain randomization (re-sampled every reset) ─────────────────
+randomization:
+  object_color:
+    enabled: true
+  lighting:
+    position: true
+    color: false
+  # Reflect the complete rack/cube/tray layout across world Y = 0.
+  # The rack and tray remain on opposite sides (the same crossing pattern).
+  rack_side:
+    enabled: true
+    choices: [left, right]
+  rack_position:
+    enabled: true
+    x_range: [0.1, 0.22]   # wider range for larger rack
+    y_range: [0.1, 0.30]    # canonical left-side pose, reflected for right-side episodes
+  rack_orientation:
+    enabled: false
+    yaw_range: [-0.5236, 0.5236]   # continuous ±30° jitter; opening always roughly faces the robot
+  cube_pose:
+    enabled: true
+    local_x_range: [-0.05, 0.05]   # cube x-offset inside the chosen rack compartment
+    local_y_range: [-0.01, 0.03]    # cube y-offset (slightly towards the back wall)
+    default_local_xy: [0.0, 0.04]  # used when cube_pose randomization is off
+  cube_story:
+    enabled: true
+    choices: ["bottom", "top"]     # which compartments are eligible
+    weights: null                  # null → uniform; e.g. [0.7, 0.3] to bias bottom
+    default: "bottom"              # used when cube_story randomization is off
+
+# ── Task-specific parameters ───────────────────────────────────────
+task:
+  tray_pos: [-0.15, -0.15]
+  placement_threshold: 0.05
+  cube_size: 0.025   # slightly larger cube for the bigger rack
+  rack:
+    default_pos: [0.18, 0.22]           # used when position randomization is off (to robot's left)
+    default_yaw: 0.0                     # used when orientation randomization is off
+
+task_conditions:
+  success:
+    score_threshold: 1.0
+  failure:
+    floor_z_threshold: 0.05
+
+recording:
+  save_freq:
+    proprio: 100
+    force_torque: 50
+    object_state: 50
+    cameras: 25
+    tactile: 50
+  save:
+    action: true
+    reward: true
+    task_score: true
+    joint_positions: true
+    ee_poses: true
+
+controller:
+  type: OSC_POSE
+  robot: Panda
+  kp: 200
+  damping_ratio: 1
+  impedance_mode: fixed
+  uncouple_pos_ori: true
+  input_type: delta
+  input_ref_frame: base
+
+obs:
+  proprio:
+    enabled: true
+    keys:
+    - robot0_eef_pos
+    - robot0_eef_quat
+    - robot0_gripper_qpos
+    - robot0_joint_pos
+    - robot0_joint_vel
+    save: true
+  object_state:
+    enabled: true
+    save: true
+  cameras:
+    gripper_cam:
+      enabled: true
+      robosuite_name: robot0_eye_in_hand
+      width: 640
+      height: 480
+      depth: false
+      save: true
+    exo_front_cam:
+      enabled: true
+      robosuite_name: frontview
+      width: 640
+      height: 480
+      depth: false
+      save: true
+    bird_eye_cam:
+      enabled: true
+      robosuite_name: birdview
+      pos: [0.0, 0.0, 2.2]
+      quat: [0.7071, 0.0, 0.0, 0.7071]
+      fovy: 60
+      width: 640
+      height: 480
+      depth: false
+      save: true
+  force_torque:
+    enabled: true
+    keys:
+    - robot0_ft_sensor
+    save: true
+  tactile:
+    enabled: true
+    fingers:
+    - right
+    - left
+    rows: 8
+    cols: 8
+    spacing: 0.001
+    save: true

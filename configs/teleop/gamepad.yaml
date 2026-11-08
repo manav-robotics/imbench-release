@@ -1,0 +1,93 @@
+# Gamepad teleoperation configuration
+# Edit this file to remap controls and tune behaviour.
+#
+# Axis / button names use Linux evdev ecodes (see: evdev.ecodes).
+# Common names:
+#   Sticks:   ABS_X, ABS_Y (left), ABS_RX, ABS_RY (right)
+#   D-pad:    ABS_HAT0X, ABS_HAT0Y
+#   Triggers: ABS_Z (LT), ABS_RZ (RT)
+#   Buttons:  BTN_SOUTH (A), BTN_EAST (B), BTN_NORTH (X), BTN_WEST (Y),
+#             BTN_TL (LB), BTN_TR (RB)
+#   (BTN_NORTH and BTN_WEST are kernel aliases of BTN_X and BTN_Y; xpad-style
+#    drivers report the buttons labelled X and Y with these codes.)
+
+# ── Tuning constants ─────────────────────────────────────────────
+deadzone: 0.25            # stick threshold before input registers
+trigger_deadzone: 0.10    # trigger threshold (0-1 range)
+speed: 0.3               # translation (x,y,z) action magnitude per tick
+rot_speed: 0.2            # rotation (roll,pitch,yaw) action magnitude per tick
+gripper_speed: 0.10       # gripper ramp rate per tick
+
+# ── Action filter (low-pass + delta clamp before env.step) ───────
+# Smooths the 6 motion channels; gripper passes through unfiltered.
+#   alpha:     EMA factor [0–1].  Higher = smoother, more lag.  0 = off.
+#   max_delta: max per-step change on any motion channel.
+action_filter:
+  alpha: 0.8
+  max_delta: 0.40
+
+# ── Axis mappings ────────────────────────────────────────────────
+# Each entry maps an evdev axis to a robot DOF.
+#   axis:   evdev ecode name
+#   action: one of  x, y, z, roll, pitch, yaw, gripper_open, gripper_close
+#   invert: flip sign (default false)
+#   type:   "stick" (centered, normalised to [-1,1]) or
+#           "trigger" (one-sided, normalised to [0,1])
+axes:
+  - axis: ABS_Y
+    action: x
+    invert: true           # stick-up (negative) → +x forward
+    type: stick
+
+  - axis: ABS_X
+    action: y
+    invert: true           # stick-left (negative) → +y left
+    type: stick
+
+  - axis: ABS_HAT0Y
+    action: z
+    invert: true           # dpad-up (negative) → +z up
+    type: stick
+
+  - axis: ABS_RY
+    action: pitch
+    invert: true           # stick-up → +pitch
+    type: stick
+
+  - axis: ABS_RX
+    action: yaw
+    invert: false
+    type: stick
+
+  - axis: ABS_Z
+    action: gripper_open
+    type: trigger
+
+  - axis: ABS_RZ
+    action: gripper_close
+    type: trigger
+
+# ── Button mappings ──────────────────────────────────────────────
+# Each entry maps an evdev button to a robot action.
+#   button: evdev ecode name
+#   action: one of  roll_neg, roll_pos, snap_toggle, end_episode,
+#                   switch_arm, step_no_action
+buttons:
+  - button: BTN_TL
+    action: roll_neg       # LB → -roll
+
+  - button: BTN_TR
+    action: roll_pos       # RB → +roll
+
+  - button: BTN_SOUTH
+    action: snap_toggle    # A → snap-toggle gripper
+
+  - button: BTN_EAST
+    action: end_episode    # B → discard the current episode
+
+  - button: BTN_NORTH
+    action: switch_arm     # X → switch arm (bimanual only)
+
+  - button: BTN_WEST
+    action: step_no_action # Y → hold to step sim with zero action
+                           # (gripper holds its previous value)
