@@ -1,4 +1,5 @@
-numpy>=1.24
+# numpy 2.5 rounds differently and flips marginal scripted rollouts; validated on 2.4.6.
+numpy==2.4.6
 pyyaml>=6.0
 mujoco==3.2.6
 robosuite==1.5.1
